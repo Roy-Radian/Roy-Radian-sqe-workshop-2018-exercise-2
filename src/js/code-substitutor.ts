@@ -11,7 +11,20 @@ import {
     MemberExpression,
     BinaryExpression,
     UnaryExpression,
-    UpdateExpression, Assignable, Identifier
+    UpdateExpression,
+    Assignable,
+    Identifier,
+    Program,
+    Expression,
+    isValueExpression,
+    isAssignmentExpression,
+    isVariableDeclaration,
+    isLoopStatement,
+    isIfStatement,
+    isAtomicExpression,
+    AtomicExpression,
+    isReturnStatement,
+    CompoundExpression, isExpressionStatement, LoopStatement, isWhileStatement, isDoWhileStatement
 } from "./Expression-Types";
 
 type Value = number | string | boolean;
@@ -37,7 +50,7 @@ interface VarTuple {
 }
 
 const paramToValueTuple = (param: string): VarTuple =>
-    [{name: param.trim().split('=')[0], value: stringToValue(param.trim().split('=')[1])}][0];
+    ({name: param.trim().split('=')[0].trim(), value: stringToValue(param.trim().split('=')[1].trim())});
 
 const parseParams = (paramsTxt: string): VarTuple[] =>
     paramsTxt.split(',').map(paramToValueTuple);
@@ -108,7 +121,7 @@ const performUnaryOp = (val: Value, op: string): Value =>
 const getValueOfUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): Value =>
     performUpdate(updateExpression.argument, updateExpression.operator, updateExpression.prefix, varTable);
 
-const performUpdate = (assignable: Assignable, op: string, prefix: boolean, varTable: VarTuple[]): Value => {
+const performUpdate = (assignable: Assignable, op: string, prefix: boolean, varTable: VarTuple[]): Value => { // Mutations due to changing varTable
     if (isIdentifier(assignable)) {
         let oldValue = valueExpressionToValue(assignable, varTable);
         if (isNumber(oldValue)) {
@@ -128,7 +141,7 @@ const performUpdate = (assignable: Assignable, op: string, prefix: boolean, varT
         return "unsupported: array";
 }
 
-const updateVarTable = (varTable: VarTuple[], id: Identifier, newValue: Value): void => {
+const updateVarTable = (varTable: VarTuple[], id: Identifier, newValue: Value): void => { // Mutations due to changing varTable
     for (let i = 0; i < varTable.length; i++) {
         if (varTable[i].name === id.name)
             varTable[i].value = newValue;
@@ -140,8 +153,44 @@ const performUpdateOp = (value: number, op: string): Value =>
     value - 1;
 
 
-export {valueExpressionToValue, parseParams}; // To be able to test getting value of expressions
+const substituteExpression = (exp: Expression, varTable: VarTuple[]): Expression =>
+    isAtomicExpression(exp) ? substituteAtomicExpression(exp, varTable) :
+    substituteCompoundExpression(exp, varTable);
 
-// TODO: support spaces in input vector (e.g x = 3)
-// TODO: fix binary operations on non numbers
-// TODO: fix unary operations on non numbers
+const substituteAtomicExpression = (exp: AtomicExpression, varTable: VarTuple[]): Expression =>
+    isVariableDeclaration(exp) ? substituteVariableDeclaration(exp, varTable) :
+    isAssignmentExpression(exp) ? substituteAssignmentExpression(exp, varTable) :
+    isReturnStatement(exp) ? substituteReturnStatement(exp, varTable) :
+    substituteBreakStatement(exp, varTable);
+
+const substituteCompoundExpression = (exp: CompoundExpression, varTable: VarTuple[]): Expression =>
+    isValueExpression(exp) ? substituteValueExpression(exp, varTable) :
+    isExpressionStatement(exp) ? substituteExpression(exp.expression, varTable) :
+    isLoopStatement(exp) ? substituteLoopStatement(exp, varTable) :
+    substituteIfStatement(exp, varTable);
+
+const substituteValueExpression = (exp: ValueExpression, varTable: VarTuple[]): Expression =>
+    isLiteral(exp) ? exp :
+    isIdentifier(exp) ? substituteIdentifier(exp, varTable) :
+    isComputationExpression(exp) ? substituteComputationExpression(exp, varTable) :
+    isConditionalExpression(exp) ? substituteConditionalExpression(exp, varTable) :
+    substituteMemberExpression(exp, varTable);
+
+const substituteLoopStatement = (loopStatement: LoopStatement, varTable: VarTuple[]): Expression =>
+    isWhileStatement(loopStatement) ? substituteWhileStatement(loopStatement, varTable) :
+    isDoWhileStatement(loopStatement) ? substituteDoWhileStatement(loopStatement, varTable) :
+    substituteForStatement(loopStatement, varTable);
+
+const getSubstituteExpFunc = (varTable: VarTuple[]) =>
+    (exp: Expression) =>
+        substituteExpression(exp, varTable);
+
+const substituteProgram = (program: Program, varTable: VarTuple[]): Program =>
+    ({type: "Program", body: program.body.map(getSubstituteExpFunc(varTable))});
+
+// TODO: implement all unimplemented functions
+/* TODO: should I support arrays? If so I need to:
+*          * Support ArrayExpression as a value expression
+*          * Somehow support array values in input vector
+*          * Support arrays in value calculations
+*/

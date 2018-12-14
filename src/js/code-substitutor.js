@@ -14,12 +14,11 @@ var stringToValue = function (str) {
             str.replace(/"/g, '');
 };
 var paramToValueTuple = function (param) {
-    return [{ name: param.trim().split('=')[0], value: stringToValue(param.trim().split('=')[1]) }][0];
+    return ({ name: param.trim().split('=')[0].trim(), value: stringToValue(param.trim().split('=')[1].trim()) });
 };
 var parseParams = function (paramsTxt) {
     return paramsTxt.split(',').map(paramToValueTuple);
 };
-exports.parseParams = parseParams;
 var valueExpressionToValue = function (v, varTable) {
     return Expression_Types_1.isLiteral(v) ? stringToValue(v.value) :
         Expression_Types_1.isIdentifier(v) ? getValueOfIdentifier(v, varTable) :
@@ -27,7 +26,6 @@ var valueExpressionToValue = function (v, varTable) {
                 Expression_Types_1.isConditionalExpression(v) ? getValueOfConditionalExpression(v, varTable) :
                     getValOfMemberExpression(v, varTable);
 };
-exports.valueExpressionToValue = valueExpressionToValue;
 var getValueOfIdentifier = function (id, varTable) {
     return varTable.length == 0 ? "" :
         varTable[0].name === id.name ? varTable[0].value :
@@ -113,6 +111,45 @@ var performUpdateOp = function (value, op) {
     return op === '++' ? value + 1 :
         value - 1;
 };
-// TODO: support spaces in input vector (e.g x = 3)
-// TODO: fix binary operations on non numbers
-// TODO: fix unary operations on non numbers
+var substituteExpression = function (exp, varTable) {
+    return Expression_Types_1.isAtomicExpression(exp) ? substituteAtomicExpression(exp, varTable) :
+        substituteCompoundExpression(exp, varTable);
+};
+var substituteAtomicExpression = function (exp, varTable) {
+    return Expression_Types_1.isVariableDeclaration(exp) ? substituteVariableDeclaration(exp, varTable) :
+        Expression_Types_1.isAssignmentExpression(exp) ? substituteAssignmentExpression(exp, varTable) :
+            Expression_Types_1.isReturnStatement(exp) ? substituteReturnStatement(exp, varTable) :
+                substituteBreakStatement(exp, varTable);
+};
+var substituteCompoundExpression = function (exp, varTable) {
+    return Expression_Types_1.isValueExpression(exp) ? substituteValueExpression(exp, varTable) :
+        Expression_Types_1.isExpressionStatement(exp) ? substituteExpression(exp.expression, varTable) :
+            Expression_Types_1.isLoopStatement(exp) ? substituteLoopStatement(exp, varTable) :
+                substituteIfStatement(exp, varTable);
+};
+var substituteValueExpression = function (exp, varTable) {
+    return Expression_Types_1.isLiteral(exp) ? exp :
+        Expression_Types_1.isIdentifier(exp) ? substituteIdentifier(exp, varTable) :
+            Expression_Types_1.isComputationExpression(exp) ? substituteComputationExpression(exp, varTable) :
+                Expression_Types_1.isConditionalExpression(exp) ? substituteConditionalExpression(exp, varTable) :
+                    substituteMemberExpression(exp, varTable);
+};
+var substituteLoopStatement = function (loopStatement, varTable) {
+    return Expression_Types_1.isWhileStatement(loopStatement) ? substituteWhileStatement(loopStatement, varTable) :
+        Expression_Types_1.isDoWhileStatement(loopStatement) ? substituteDoWhileStatement(loopStatement, varTable) :
+            substituteForStatement(loopStatement, varTable);
+};
+var getSubstituteExpFunc = function (varTable) {
+    return function (exp) {
+        return substituteExpression(exp, varTable);
+    };
+};
+var substituteProgram = function (program, varTable) {
+    return ({ type: "Program", body: program.body.map(getSubstituteExpFunc(varTable)) });
+};
+// TODO: implement all unimplemented functions
+/* TODO: should I support arrays? If so I need to:
+*          * Support ArrayExpression as a value expression
+*          * Somehow support array values in input vector
+*          * Support arrays in value calculations
+*/ 

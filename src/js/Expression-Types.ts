@@ -16,8 +16,8 @@ interface Location {
 export interface Program {
     type: 'Program';
     body: Expression[];
-    sourceType: string;
-    loc: Location;
+    /*sourceType: string;
+    loc: Location;*/
 }
 export const isProgram = (x: object): x is Program => isWithType(x) ? x.type == 'Program' : false;
 
