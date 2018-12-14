@@ -1,8 +1,8 @@
-'use strict';
-Object.defineProperty(exports, '__esModule', { value: true });
-var expression_analyzer_1 = require('./expression-analyzer');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var expression_analyzer_1 = require("./expression-analyzer");
 var analyzedLineToHtml = function (line) {
-    return '<tr><td>' + line.line + '</td><td>' + line.type + '</td><td>' + line.name + '</td><td>' + line.condition + '</td><td>' + line.value + '</td></tr>';
+    return "<tr><td>" + line.line + "</td><td>" + line.type + "</td><td>" + line.name + "</td><td>" + line.condition + "</td><td>" + line.value + "</td></tr>";
 };
 var notAProgram = '<table><tr><td>Not a program!</td></tr>';
 var headers = '<tr><td>Line</td><td>Type</td><td>Name</td><td>Condition</td><td>Value</td></tr>';

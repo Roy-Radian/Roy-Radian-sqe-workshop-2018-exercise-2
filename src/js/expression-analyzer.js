@@ -67,15 +67,19 @@ var getValOfValExp = function (v) {
         isIdentifier(v) ? v.name :
             isComputationExpressoin(v) ? getValOfComputationExpression(v) :
                 isConditionalExpression(v) ? getValOfConditionalExpression(v) :
-                    getValOfValExp(v.object) + '[' + getValOfValExp(v.property) + ']';
+                    getValOfMemberExpression(v);
 };
 var getValOfComputationExpression = function (c) {
-    return isBinaryExpression(c) ? getValOfValExp(c.left) + ' ' + c.operator + ' ' + getValOfValExp(c.right) :
+    return isBinaryExpression(c) ? '(' + getValOfValExp(c.left) + ' ' + c.operator + ' ' + getValOfValExp(c.right) + ')' :
         isUnaryExpression(c) ? c.operator + getValOfValExp(c.argument) : // If there were non-prefix unary expressions: (v.prefix ? v.operator + getValOfValExp(v.argument) : getValOfValExp(v.argument) + v.operator) :
             (c.prefix ? c.operator + getValOfValExp(c.argument) : getValOfValExp(c.argument) + c.operator);
 };
 var getValOfConditionalExpression = function (cond) {
     return "(" + getValOfValExp(cond.test) + " ? " + getValOfValExp(cond.consequent) + " : " + getValOfValExp(cond.alternate) + ")";
+};
+var getValOfMemberExpression = function (m) {
+    return m.computed ? getValOfValExp(m.object) + '[' + getValOfValExp(m.property) + ']' :
+        getValOfValExp(m.object) + '.' + getValOfValExp(m.property);
 };
 var valueExpressionToAnalyzedLines = function (val) {
     return isLiteral(val) ? literalExpressionToAnalyzedLines(val) :
@@ -120,6 +124,9 @@ var whileStatementToAnalyzedLines = function (whileStatement) {
     return [{ line: whileStatement.loc.start.line, type: whileStatement.type, name: EMPTY, condition: getValOfValExp(whileStatement.test), value: EMPTY }];
 };
 var forStatementToAnalyzedLines = function (forStatement) {
+    return forConditionToAnalyzedLines(forStatement).concat(forInitToAnalyzedLines(forStatement)).concat(forUpdateToAnalyzedLines(forStatement));
+};
+var forConditionToAnalyzedLines = function (forStatement) {
     return [{ line: forStatement.loc.start.line, type: forStatement.type, name: EMPTY, condition: getValOfValExp(forStatement.test), value: EMPTY }];
 };
 var breakStatementToAnalyzedLines = function (breakStatement) {
@@ -185,6 +192,14 @@ var getAnalyzedLinesFromDoWhileStatement = function (doWhileStatement) {
 };
 var getAnalyzedLinesFromForStatement = function (forStatement) {
     return forStatementToAnalyzedLines(forStatement).concat(getAnalyzedLinesFromBody(forStatement.body));
+};
+var forInitToAnalyzedLines = function (forStatement) {
+    return isVariableDeclaration(forStatement.init) ? variableDeclarationToAnalyzedLines(forStatement.init) :
+        assignmentExpressionToAnalyzedLines(forStatement.init);
+};
+var forUpdateToAnalyzedLines = function (forStatement) {
+    return isAssignmentExpression(forStatement.update) ? assignmentExpressionToAnalyzedLines(forStatement.update) :
+        updateExpressionToAnalyzedLines(forStatement.update);
 };
 var getAnalyzedLinesFromIfStatement = function (ifStatement) {
     return ifStatementToAnalyzedLines(ifStatement).concat(getAnalyzedLinesFromBody(ifStatement.consequent)).concat(getAnalyzedLinesFromAlternate(ifStatement.alternate));

@@ -7,7 +7,6 @@ $(document).ready(function () {
         let codeToParse = $('#codePlaceholder').val();
         let parsedCode = parseCode(codeToParse);
 
-        $('#parsedCode').val(JSON.stringify(parsedCode, null, 2));
         document.getElementById('tblDiv').innerHTML = constructTable(parsedCode);
     });
 });

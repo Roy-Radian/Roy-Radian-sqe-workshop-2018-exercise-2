@@ -318,7 +318,10 @@ const whileStatementToAnalyzedLines = (whileStatement: WhileStatement): Analyzed
     [{line: whileStatement.loc.start.line, type: whileStatement.type, name: EMPTY, condition: getValOfValExp(whileStatement.test), value: EMPTY}];
 
 const forStatementToAnalyzedLines = (forStatement: ForStatement): AnalyzedLine[] =>
-    [   {line: forStatement.loc.start.line, type: forStatement.type, name: EMPTY, condition: getValOfValExp(forStatement.test), value: EMPTY}];
+    forConditionToAnalyzedLines(forStatement).concat(forInitToAnalyzedLines(forStatement)).concat(forUpdateToAnalyzedLines(forStatement));
+
+const forConditionToAnalyzedLines = (forStatement: ForStatement): AnalyzedLine[] =>
+    [{line: forStatement.loc.start.line, type: forStatement.type, name: EMPTY, condition: getValOfValExp(forStatement.test), value: EMPTY}];
 
 const breakStatementToAnalyzedLines = (breakStatement: BreakStatement): AnalyzedLine[] =>
     [{line: breakStatement.loc.start.line, type: breakStatement.type, name: EMPTY, condition: EMPTY, value: EMPTY}];
@@ -382,7 +385,7 @@ const getAnalyzedLinesFromDoWhileStatement = (doWhileStatement: DoWhileStatement
     doWhileStatementToAnalyzedLines(doWhileStatement).concat(getAnalyzedLinesFromBody(doWhileStatement.body));
 
 const getAnalyzedLinesFromForStatement = (forStatement: ForStatement): AnalyzedLine[] =>
-    forStatementToAnalyzedLines(forStatement).concat(forInitToAnalyzedLines(forStatement)).concat(forUpdateToAnalyzedLines(forStatement)).concat(getAnalyzedLinesFromBody(forStatement.body));
+    forStatementToAnalyzedLines(forStatement).concat(getAnalyzedLinesFromBody(forStatement.body));
 
 const forInitToAnalyzedLines = (forStatement: ForStatement): AnalyzedLine[] =>
     isVariableDeclaration(forStatement.init) ? variableDeclarationToAnalyzedLines(forStatement.init) :
