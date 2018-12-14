@@ -15,7 +15,7 @@ import {
     IfStatement, isAssignmentExpression,
     isAtomicExpression,
     isBinaryExpression, isBlockStatement, isBody,
-    isComputationExpressoin,
+    isComputationExpression,
     isConditionalExpression, isDoWhileStatement, isExpressionStatement, isFunctionDeclaration,
     isIdentifier,
     isLiteral, isLoopStatement,
@@ -83,7 +83,7 @@ const getValOfInit = (init: ValueExpression | null): string =>
 const getValOfValExp = (v: ValueExpression): string =>
     isLiteral(v) ? v.raw :
     isIdentifier(v) ? v.name :
-    isComputationExpressoin(v) ? getValOfComputationExpression(v) :
+    isComputationExpression(v) ? getValOfComputationExpression(v) :
     isConditionalExpression(v) ? getValOfConditionalExpression(v) :
     getValOfMemberExpression(v);
 
@@ -102,7 +102,7 @@ const getValOfMemberExpression = (m: MemberExpression): string =>
 const valueExpressionToAnalyzedLines = (val: ValueExpression): AnalyzedLine[] =>
     isLiteral(val) ? literalExpressionToAnalyzedLines(val) :
     isIdentifier(val) ? identifierToAnalyzedLines(val) :
-    isComputationExpressoin(val) ? computationExpressionToAnalyzedLines(val) :
+    isComputationExpression(val) ? computationExpressionToAnalyzedLines(val) :
     isConditionalExpression(val) ? conditionalExpressionToAnalyzedLines(val) :
     memberExpressionToAnalyzedLines(val);
 

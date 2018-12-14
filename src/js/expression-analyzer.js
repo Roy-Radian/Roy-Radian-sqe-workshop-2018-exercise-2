@@ -44,7 +44,7 @@ var getValOfInit = function (init) {
 var getValOfValExp = function (v) {
     return Expression_Types_1.isLiteral(v) ? v.raw :
         Expression_Types_1.isIdentifier(v) ? v.name :
-            Expression_Types_1.isComputationExpressoin(v) ? getValOfComputationExpression(v) :
+            Expression_Types_1.isComputationExpression(v) ? getValOfComputationExpression(v) :
                 Expression_Types_1.isConditionalExpression(v) ? getValOfConditionalExpression(v) :
                     getValOfMemberExpression(v);
 };
@@ -63,7 +63,7 @@ var getValOfMemberExpression = function (m) {
 var valueExpressionToAnalyzedLines = function (val) {
     return Expression_Types_1.isLiteral(val) ? literalExpressionToAnalyzedLines(val) :
         Expression_Types_1.isIdentifier(val) ? identifierToAnalyzedLines(val) :
-            Expression_Types_1.isComputationExpressoin(val) ? computationExpressionToAnalyzedLines(val) :
+            Expression_Types_1.isComputationExpression(val) ? computationExpressionToAnalyzedLines(val) :
                 Expression_Types_1.isConditionalExpression(val) ? conditionalExpressionToAnalyzedLines(val) :
                     memberExpressionToAnalyzedLines(val);
 };

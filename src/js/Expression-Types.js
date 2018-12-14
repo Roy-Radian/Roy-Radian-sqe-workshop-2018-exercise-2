@@ -13,8 +13,8 @@ exports.isIdentifier = function (x) { return isWithType(x) ? x.type === 'Identif
 exports.isLiteral = function (x) { return isWithType(x) ? x.type === 'Literal' : false; };
 exports.isBinaryExpression = function (x) { return isWithType(x) ? x.type === 'BinaryExpression' : false; };
 exports.isUnaryExpression = function (x) { return isWithType(x) ? x.type === 'UnaryExpression' : false; };
-exports.isComputationExpressoin = function (x) { return exports.isBinaryExpression(x) || exports.isUnaryExpression(x) || exports.isUpdateExpression(x); };
-exports.isValueExpression = function (x) { return exports.isLiteral(x) || exports.isIdentifier(x) || exports.isComputationExpressoin(x) || exports.isConditionalExpression(x) || exports.isMemberExpression(x); };
+exports.isComputationExpression = function (x) { return exports.isBinaryExpression(x) || exports.isUnaryExpression(x) || exports.isUpdateExpression(x); };
+exports.isValueExpression = function (x) { return exports.isLiteral(x) || exports.isIdentifier(x) || exports.isComputationExpression(x) || exports.isConditionalExpression(x) || exports.isMemberExpression(x); };
 exports.isBlockStatement = function (x) { return isWithType(x) ? x.type === 'BlockStatement' : false; };
 exports.isBody = function (x) { return exports.isBlockStatement(x) || exports.isExpression(x); };
 exports.isFunctionDeclaration = function (x) { return isWithType(x) ? x.type === 'FunctionDeclaration' : false; };

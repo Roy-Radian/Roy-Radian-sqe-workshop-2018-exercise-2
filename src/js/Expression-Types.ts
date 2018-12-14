@@ -78,10 +78,10 @@ export interface UnaryExpression {
 export const isUnaryExpression = (x: any): x is UnaryExpression => isWithType(x) ? x.type === 'UnaryExpression' : false;
 
 export type ComputationExpression = BinaryExpression | UnaryExpression | UpdateExpression;
-export const isComputationExpressoin = (x: object): x is ComputationExpression => isBinaryExpression(x) || isUnaryExpression(x) || isUpdateExpression(x);
+export const isComputationExpression = (x: object): x is ComputationExpression => isBinaryExpression(x) || isUnaryExpression(x) || isUpdateExpression(x);
 
 export type ValueExpression = Literal | Identifier | ComputationExpression | ConditionalExpression | MemberExpression;
-export const isValueExpression = (x: any): x is ValueExpression => isLiteral(x) || isIdentifier(x) || isComputationExpressoin(x) || isConditionalExpression(x) || isMemberExpression(x);
+export const isValueExpression = (x: any): x is ValueExpression => isLiteral(x) || isIdentifier(x) || isComputationExpression(x) || isConditionalExpression(x) || isMemberExpression(x);
 
 export interface BlockStatement {
     type: 'BlockStatement';
