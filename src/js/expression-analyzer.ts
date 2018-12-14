@@ -1,218 +1,42 @@
 import {parseCode} from './code-analyzer';
-
-//TODO: Implement a[i], else, else if
-
-interface WithType {
-    type: string;
-}
-const isWithType = (x: object): x is WithType => x != null && x.hasOwnProperty('type');
-
-interface CodePostition {
-    line: number;
-    column: number;
-}
-
-interface Location {
-    start: CodePostition;
-    end: CodePostition;
-}
-
-interface Program {
-    type: 'Program';
-    body: Expression[];
-    sourceType: string;
-    loc: Location;
-}
-const isProgram = (x: object): x is Program => isWithType(x) ? x.type == 'Program' : false;
-
-type LoopStatement = WhileStatement | DoWhileStatement | ForStatement;
-const isLoopStatement = (x: object): x is LoopStatement => isWhileStatement(x) || isDoWhileStatement(x) || isForStatement(x);
-
-type AtomicExpression = VariableDeclaration | AssignmentExpression | ReturnStatement | BreakStatement;
-const isAtomicExpression = (x: object): x is AtomicExpression => isVariableDeclaration(x) || isAssignmentExpression(x) || isReturnStatement(x) ||
-    isBreakStatement(x);
-
-type CompoundExpression = ExpressionStatement | FunctionDeclaration | ValueExpression | LoopStatement | IfStatement;
-const isCompoundExpression = (x: object): x is CompoundExpression => isExpressionStatement(x) || isFunctionDeclaration(x) || isValueExpression(x) ||
-    isLoopStatement(x) || isIfStatement(x);
-
-type Expression = AtomicExpression | CompoundExpression;
-const isExpression = (x: object): x is Expression => isAtomicExpression(x) || isCompoundExpression(x);
-
-interface ExpressionStatement {
-    type: 'ExpressionStatement';
-    expression: Expression;
-    loc: Location
-}
-const isExpressionStatement = (x: any): x is ExpressionStatement => isWithType(x) ? x.type === 'ExpressionStatement' : false;
-
-interface Identifier {
-    type: 'Identifier';
-    name: string;
-    loc: Location;
-}
-const isIdentifier = (x: any): x is Identifier => isWithType(x) ? x.type === 'Identifier' : false;
-
-interface Literal {
-    type: 'Literal';
-    value: any;
-    raw: string;
-    loc: Location;
-}
-const isLiteral = (x: any): x is Literal => isWithType(x) ? x.type === 'Literal' : false;
-
-type BinaryOperator = '+' | '-' | '*' | '/' | '>' | '<' | '>=' | '<=' | '==' | '===' | '**';
-interface BinaryExpression {
-    type: 'BinaryExpression';
-    operator: BinaryOperator;
-    left: ValueExpression;
-    right: ValueExpression;
-    loc: Location;
-}
-const isBinaryExpression = (x: any): x is BinaryExpression => isWithType(x) ? x.type === 'BinaryExpression' : false;
-
-type UnaryOperator = '!' | '-' | '+';
-interface UnaryExpression {
-    type: 'UnaryExpression';
-    operator: UnaryOperator;
-    argument: ValueExpression;
-    prefix: boolean;
-    loc: Location;
-}
-const isUnaryExpression = (x: any): x is UnaryExpression => isWithType(x) ? x.type === 'UnaryExpression' : false;
-
-type ComputationExpression = BinaryExpression | UnaryExpression | UpdateExpression;
-const isComputationExpressoin = (x: object): x is ComputationExpression => isBinaryExpression(x) || isUnaryExpression(x) || isUpdateExpression(x);
-
-type ValueExpression = Literal | Identifier | ComputationExpression | ConditionalExpression | MemberExpression;
-const isValueExpression = (x: any): x is ValueExpression => isLiteral(x) || isIdentifier(x) || isComputationExpressoin(x) || isConditionalExpression(x) || isMemberExpression(x);
-
-interface BlockStatement {
-    type: 'BlockStatement';
-    body: Expression[];
-    loc: Location;
-}
-const isBlockStatement = (x: any): x is BlockStatement => isWithType(x) ? x.type === 'BlockStatement' : false;
-
-type Body = BlockStatement | Expression;
-const isBody = (x: any): x is Body => isBlockStatement(x) || isExpression(x);
-
-interface FunctionDeclaration {
-    type: 'FunctionDeclaration';
-    id: Identifier;
-    params: Identifier[];
-    body: Body;
-    generator: boolean;
-    expression: boolean;
-    async: boolean;
-    loc: Location;
-}
-const isFunctionDeclaration = (x: any): x is FunctionDeclaration => isWithType(x) ? x.type === 'FunctionDeclaration' : false;
-
-interface VariableDeclarator {
-    type: 'VariableDeclarator';
-    id: Identifier;
-    init: ValueExpression | null;
-    loc: Location;
-}
-//const isVariableDeclarator = (x: any): x is VariableDeclarator => isWithType(x) ? x.type === 'VariableDeclarator' : false;
-
-interface VariableDeclaration {
-    type: 'VariableDeclaration';
-    declarations: VariableDeclarator[];
-    kind: string;
-    loc: Location;
-}
-const isVariableDeclaration = (x: any): x is VariableDeclaration => isWithType(x) ? x.type === 'VariableDeclaration' : false;
-
-type Assignable = Identifier | MemberExpression;
-
-type AssignmentOperator = '=' | '+=' | '-=' | '*=' | '/=';
-interface AssignmentExpression {
-    type: 'AssignmentExpression';
-    operator: AssignmentOperator;
-    left: Assignable;
-    right: ValueExpression;
-    loc: Location;
-}
-const isAssignmentExpression = (x: any): x is AssignmentExpression => isWithType(x) ? x.type === 'AssignmentExpression' : false;
-
-interface UpdateExpression {
-    type: 'UpdateExpression';
-    operator: '++' | '--';
-    argument: Assignable;
-    prefix: boolean;
-    loc: Location;
-}
-const isUpdateExpression = (x: any): x is UpdateExpression => isWithType(x) ? x.type === 'UpdateExpression' : false;
-
-interface ConditionalExpression {
-    type: 'ConditionalExpression';
-    test: ValueExpression;
-    consequent: ValueExpression;
-    alternate: ValueExpression;
-    loc: Location;
-}
-const isConditionalExpression = (x: any): x is ConditionalExpression => isWithType(x) ? x.type === 'ConditionalExpression' : false;
-
-interface MemberExpression {
-    type: 'MemberExpression';
-    computed: boolean;
-    object: ValueExpression;
-    property: ValueExpression;
-    loc: Location;
-}
-const isMemberExpression = (x: any): x is MemberExpression => isWithType(x) ? x.type === 'MemberExpression' : false;
-
-interface ReturnStatement {
-    type: 'ReturnStatement';
-    argument: ValueExpression;
-    loc: Location;
-}
-const isReturnStatement = (x: any): x is ReturnStatement => isWithType(x) ? x.type === 'ReturnStatement' : false;
-
-interface WhileStatement {
-    type: 'WhileStatement';
-    test: ValueExpression;
-    body: BlockStatement;
-    loc: Location;
-}
-const isWhileStatement = (x: any) : x is WhileStatement => isWithType(x) ? x.type === 'WhileStatement' : false;
-
-interface DoWhileStatement {
-    type: 'DoWhileStatement';
-    test: ValueExpression;
-    body: BlockStatement;
-    loc: Location;
-}
-const isDoWhileStatement = (x: any): x is DoWhileStatement => isWithType(x) ? x.type === 'DoWhileStatement' : false;
-
-interface ForStatement {
-    type: 'ForStatement';
-    init: VariableDeclaration | AssignmentExpression;
-    test: ValueExpression;
-    update: AssignmentExpression | UpdateExpression;
-    body: BlockStatement;
-    loc: Location;
-}
-const isForStatement = (x: any): x is ForStatement => isWithType(x) ? x.type === 'ForStatement' : false;
-
-interface BreakStatement {
-    type: 'BreakStatement';
-    label: any;
-    loc: Location;
-}
-const isBreakStatement = (x: any): x is BreakStatement => isWithType(x) ? x.type === 'BreakStatement' : false;
-
-
-interface IfStatement {
-    type: 'IfStatement';
-    test: ValueExpression;
-    consequent: Body;
-    alternate: Body | null;
-    loc: Location;
-}
-const isIfStatement = (x: any): x is IfStatement => isWithType(x) ? x.type === 'IfStatement' : false;
+import {
+    Assignable,
+    AssignmentExpression,
+    AtomicExpression,
+    BinaryExpression,
+    BreakStatement, CompoundExpression,
+    ComputationExpression,
+    ConditionalExpression,
+    DoWhileStatement,
+    Expression,
+    ForStatement,
+    FunctionDeclaration,
+    Identifier,
+    IfStatement, isAssignmentExpression,
+    isAtomicExpression,
+    isBinaryExpression, isBlockStatement, isBody,
+    isComputationExpressoin,
+    isConditionalExpression, isDoWhileStatement, isExpressionStatement, isFunctionDeclaration,
+    isIdentifier,
+    isLiteral, isLoopStatement,
+    isMemberExpression, isReturnStatement,
+    isUnaryExpression,
+    isUpdateExpression,
+    isValueExpression,
+    isVariableDeclaration, isWhileStatement,
+    Literal, LoopStatement,
+    MemberExpression,
+    Program,
+    isProgram,
+    ReturnStatement,
+    UnaryExpression,
+    UpdateExpression,
+    ValueExpression,
+    VariableDeclaration,
+    VariableDeclarator,
+    WhileStatement,
+    Body
+} from "./Expression-Types";
 
 const EMPTY = '';
 interface AnalyzedLine {
@@ -401,4 +225,4 @@ const getAnalyzedLinesFromIfStatement = (ifStatement: IfStatement): AnalyzedLine
 const getAnalyzedLinesFromAlternate = (altBody: Body | null) : AnalyzedLine[] =>
     isBody(altBody) ? elseToAnalyzedLines(altBody).concat(getAnalyzedLinesFromBody(altBody)) : [];
 
-export {AnalyzedLine, isProgram, programToAnalyzedLines};
+export {AnalyzedLine, isProgram, programToAnalyzedLines, ValueExpression, isLiteral, isIdentifier, isBinaryExpression, isUnaryExpression, isUpdateExpression, isConditionalExpression, isMemberExpression};

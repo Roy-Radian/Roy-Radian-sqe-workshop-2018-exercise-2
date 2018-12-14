@@ -1,35 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var isWithType = function (x) { return x != null && x.hasOwnProperty('type'); };
-var isProgram = function (x) { return isWithType(x) ? x.type == 'Program' : false; };
-exports.isProgram = isProgram;
-var isLoopStatement = function (x) { return isWhileStatement(x) || isDoWhileStatement(x) || isForStatement(x); };
-var isAtomicExpression = function (x) { return isVariableDeclaration(x) || isAssignmentExpression(x) || isReturnStatement(x) ||
-    isBreakStatement(x); };
-var isCompoundExpression = function (x) { return isExpressionStatement(x) || isFunctionDeclaration(x) || isValueExpression(x) ||
-    isLoopStatement(x) || isIfStatement(x); };
-var isExpression = function (x) { return isAtomicExpression(x) || isCompoundExpression(x); };
-var isExpressionStatement = function (x) { return isWithType(x) ? x.type === 'ExpressionStatement' : false; };
-var isIdentifier = function (x) { return isWithType(x) ? x.type === 'Identifier' : false; };
-var isLiteral = function (x) { return isWithType(x) ? x.type === 'Literal' : false; };
-var isBinaryExpression = function (x) { return isWithType(x) ? x.type === 'BinaryExpression' : false; };
-var isUnaryExpression = function (x) { return isWithType(x) ? x.type === 'UnaryExpression' : false; };
-var isComputationExpressoin = function (x) { return isBinaryExpression(x) || isUnaryExpression(x) || isUpdateExpression(x); };
-var isValueExpression = function (x) { return isLiteral(x) || isIdentifier(x) || isComputationExpressoin(x) || isConditionalExpression(x) || isMemberExpression(x); };
-var isBlockStatement = function (x) { return isWithType(x) ? x.type === 'BlockStatement' : false; };
-var isBody = function (x) { return isBlockStatement(x) || isExpression(x); };
-var isFunctionDeclaration = function (x) { return isWithType(x) ? x.type === 'FunctionDeclaration' : false; };
-var isVariableDeclaration = function (x) { return isWithType(x) ? x.type === 'VariableDeclaration' : false; };
-var isAssignmentExpression = function (x) { return isWithType(x) ? x.type === 'AssignmentExpression' : false; };
-var isUpdateExpression = function (x) { return isWithType(x) ? x.type === 'UpdateExpression' : false; };
-var isConditionalExpression = function (x) { return isWithType(x) ? x.type === 'ConditionalExpression' : false; };
-var isMemberExpression = function (x) { return isWithType(x) ? x.type === 'MemberExpression' : false; };
-var isReturnStatement = function (x) { return isWithType(x) ? x.type === 'ReturnStatement' : false; };
-var isWhileStatement = function (x) { return isWithType(x) ? x.type === 'WhileStatement' : false; };
-var isDoWhileStatement = function (x) { return isWithType(x) ? x.type === 'DoWhileStatement' : false; };
-var isForStatement = function (x) { return isWithType(x) ? x.type === 'ForStatement' : false; };
-var isBreakStatement = function (x) { return isWithType(x) ? x.type === 'BreakStatement' : false; };
-var isIfStatement = function (x) { return isWithType(x) ? x.type === 'IfStatement' : false; };
+var Expression_Types_1 = require("./Expression-Types");
+exports.isBinaryExpression = Expression_Types_1.isBinaryExpression;
+exports.isConditionalExpression = Expression_Types_1.isConditionalExpression;
+exports.isIdentifier = Expression_Types_1.isIdentifier;
+exports.isLiteral = Expression_Types_1.isLiteral;
+exports.isMemberExpression = Expression_Types_1.isMemberExpression;
+exports.isUnaryExpression = Expression_Types_1.isUnaryExpression;
+exports.isUpdateExpression = Expression_Types_1.isUpdateExpression;
+exports.isProgram = Expression_Types_1.isProgram;
 var EMPTY = '';
 /*const expressionToAnalyzedLines = (exp: Expression): AnalyzedLine[] =>
     //isExpressionStatement(exp) ? expressionStatementToAnalyzedLines(exp) :
@@ -59,19 +38,19 @@ var variableDeclaratorToAnalyzedLine = function (varDec) {
     return ({ line: varDec.loc.start.line, type: varDec.type, name: varDec.id.name, condition: EMPTY, value: getValOfInit(varDec.init) });
 };
 var getValOfInit = function (init) {
-    return isValueExpression(init) ? getValOfValExp(init) :
+    return Expression_Types_1.isValueExpression(init) ? getValOfValExp(init) :
         'null';
 };
 var getValOfValExp = function (v) {
-    return isLiteral(v) ? v.raw :
-        isIdentifier(v) ? v.name :
-            isComputationExpressoin(v) ? getValOfComputationExpression(v) :
-                isConditionalExpression(v) ? getValOfConditionalExpression(v) :
+    return Expression_Types_1.isLiteral(v) ? v.raw :
+        Expression_Types_1.isIdentifier(v) ? v.name :
+            Expression_Types_1.isComputationExpressoin(v) ? getValOfComputationExpression(v) :
+                Expression_Types_1.isConditionalExpression(v) ? getValOfConditionalExpression(v) :
                     getValOfMemberExpression(v);
 };
 var getValOfComputationExpression = function (c) {
-    return isBinaryExpression(c) ? '(' + getValOfValExp(c.left) + ' ' + c.operator + ' ' + getValOfValExp(c.right) + ')' :
-        isUnaryExpression(c) ? c.operator + getValOfValExp(c.argument) : // If there were non-prefix unary expressions: (v.prefix ? v.operator + getValOfValExp(v.argument) : getValOfValExp(v.argument) + v.operator) :
+    return Expression_Types_1.isBinaryExpression(c) ? '(' + getValOfValExp(c.left) + ' ' + c.operator + ' ' + getValOfValExp(c.right) + ')' :
+        Expression_Types_1.isUnaryExpression(c) ? c.operator + getValOfValExp(c.argument) : // If there were non-prefix unary expressions: (v.prefix ? v.operator + getValOfValExp(v.argument) : getValOfValExp(v.argument) + v.operator) :
             (c.prefix ? c.operator + getValOfValExp(c.argument) : getValOfValExp(c.argument) + c.operator);
 };
 var getValOfConditionalExpression = function (cond) {
@@ -82,15 +61,15 @@ var getValOfMemberExpression = function (m) {
         getValOfValExp(m.object) + '.' + getValOfValExp(m.property);
 };
 var valueExpressionToAnalyzedLines = function (val) {
-    return isLiteral(val) ? literalExpressionToAnalyzedLines(val) :
-        isIdentifier(val) ? identifierToAnalyzedLines(val) :
-            isComputationExpressoin(val) ? computationExpressionToAnalyzedLines(val) :
-                isConditionalExpression(val) ? conditionalExpressionToAnalyzedLines(val) :
+    return Expression_Types_1.isLiteral(val) ? literalExpressionToAnalyzedLines(val) :
+        Expression_Types_1.isIdentifier(val) ? identifierToAnalyzedLines(val) :
+            Expression_Types_1.isComputationExpressoin(val) ? computationExpressionToAnalyzedLines(val) :
+                Expression_Types_1.isConditionalExpression(val) ? conditionalExpressionToAnalyzedLines(val) :
                     memberExpressionToAnalyzedLines(val);
 };
 var computationExpressionToAnalyzedLines = function (comp) {
-    return isUpdateExpression(comp) ? updateExpressionToAnalyzedLines(comp) :
-        isBinaryExpression(comp) ? binaryExpressionToAnalyzedLines(comp) :
+    return Expression_Types_1.isUpdateExpression(comp) ? updateExpressionToAnalyzedLines(comp) :
+        Expression_Types_1.isBinaryExpression(comp) ? binaryExpressionToAnalyzedLines(comp) :
             unaryExpressionToAnalyzedLines(comp);
 };
 var literalExpressionToAnalyzedLines = function (l) {
@@ -112,7 +91,7 @@ var assignmentExpressionToAnalyzedLines = function (assignmentExpression) {
     return [{ line: assignmentExpression.loc.start.line, type: assignmentExpression.type, name: getNameOfAssignable(assignmentExpression.left), condition: EMPTY, value: getValOfAssignmentExpression(assignmentExpression) }];
 };
 var getNameOfAssignable = function (a) {
-    return isMemberExpression(a) ? getValOfValExp(a) : a.name;
+    return Expression_Types_1.isMemberExpression(a) ? getValOfValExp(a) : a.name;
 };
 var getValOfAssignmentExpression = function (a) {
     return (a.operator.length > 1 ? getValOfValExp(a.left) + ' ' + a.operator[0] + ' ' : '') + getValOfValExp(a.right);
@@ -153,29 +132,29 @@ var programToAnalyzedLines = function (program) {
 };
 exports.programToAnalyzedLines = programToAnalyzedLines;
 var getAllAnalyzedLines = function (exp) {
-    return isAtomicExpression(exp) ? getAnalyzedLinesFromAtomicExpression(exp) :
+    return Expression_Types_1.isAtomicExpression(exp) ? getAnalyzedLinesFromAtomicExpression(exp) :
         getAnalyzedLinesFromCompoundExpression(exp);
 };
 var getAnalyzedLinesFromAtomicExpression = function (a) {
-    return isVariableDeclaration(a) ? variableDeclarationToAnalyzedLines(a) :
-        isAssignmentExpression(a) ? assignmentExpressionToAnalyzedLines(a) :
-            isReturnStatement(a) ? returnStatementToAnalyzedLines(a) :
+    return Expression_Types_1.isVariableDeclaration(a) ? variableDeclarationToAnalyzedLines(a) :
+        Expression_Types_1.isAssignmentExpression(a) ? assignmentExpressionToAnalyzedLines(a) :
+            Expression_Types_1.isReturnStatement(a) ? returnStatementToAnalyzedLines(a) :
                 breakStatementToAnalyzedLines(a);
 };
 var getAnalyzedLinesFromCompoundExpression = function (comp) {
-    return isExpressionStatement(comp) ? getAllAnalyzedLines(comp.expression) :
-        isFunctionDeclaration(comp) ? getAnalyzedLinesFromFunctionDeclaration(comp) :
-            isValueExpression(comp) ? valueExpressionToAnalyzedLines(comp) :
-                isLoopStatement(comp) ? getAnalyzedLinesFromLoopStatement(comp) :
+    return Expression_Types_1.isExpressionStatement(comp) ? getAllAnalyzedLines(comp.expression) :
+        Expression_Types_1.isFunctionDeclaration(comp) ? getAnalyzedLinesFromFunctionDeclaration(comp) :
+            Expression_Types_1.isValueExpression(comp) ? valueExpressionToAnalyzedLines(comp) :
+                Expression_Types_1.isLoopStatement(comp) ? getAnalyzedLinesFromLoopStatement(comp) :
                     getAnalyzedLinesFromIfStatement(comp);
 };
 var getAnalyzedLinesFromLoopStatement = function (loop) {
-    return isWhileStatement(loop) ? getAnalyzedLinesFromWhileStatement(loop) :
-        isDoWhileStatement(loop) ? getAnalyzedLinesFromDoWhileStatement(loop) :
+    return Expression_Types_1.isWhileStatement(loop) ? getAnalyzedLinesFromWhileStatement(loop) :
+        Expression_Types_1.isDoWhileStatement(loop) ? getAnalyzedLinesFromDoWhileStatement(loop) :
             getAnalyzedLinesFromForStatement(loop);
 };
 var getAnalyzedLinesFromBody = function (b) {
-    return isBlockStatement(b) ? b.body.map(function (exp) { return getAllAnalyzedLines(exp); }).reduce(concatAnalyzedLines) :
+    return Expression_Types_1.isBlockStatement(b) ? b.body.map(function (exp) { return getAllAnalyzedLines(exp); }).reduce(concatAnalyzedLines) :
         getAllAnalyzedLines(b);
 };
 var getAnalyzedLinesFromFunctionDeclaration = function (func) {
@@ -194,16 +173,16 @@ var getAnalyzedLinesFromForStatement = function (forStatement) {
     return forStatementToAnalyzedLines(forStatement).concat(getAnalyzedLinesFromBody(forStatement.body));
 };
 var forInitToAnalyzedLines = function (forStatement) {
-    return isVariableDeclaration(forStatement.init) ? variableDeclarationToAnalyzedLines(forStatement.init) :
+    return Expression_Types_1.isVariableDeclaration(forStatement.init) ? variableDeclarationToAnalyzedLines(forStatement.init) :
         assignmentExpressionToAnalyzedLines(forStatement.init);
 };
 var forUpdateToAnalyzedLines = function (forStatement) {
-    return isAssignmentExpression(forStatement.update) ? assignmentExpressionToAnalyzedLines(forStatement.update) :
+    return Expression_Types_1.isAssignmentExpression(forStatement.update) ? assignmentExpressionToAnalyzedLines(forStatement.update) :
         updateExpressionToAnalyzedLines(forStatement.update);
 };
 var getAnalyzedLinesFromIfStatement = function (ifStatement) {
     return ifStatementToAnalyzedLines(ifStatement).concat(getAnalyzedLinesFromBody(ifStatement.consequent)).concat(getAnalyzedLinesFromAlternate(ifStatement.alternate));
 };
 var getAnalyzedLinesFromAlternate = function (altBody) {
-    return isBody(altBody) ? elseToAnalyzedLines(altBody).concat(getAnalyzedLinesFromBody(altBody)) : [];
+    return Expression_Types_1.isBody(altBody) ? elseToAnalyzedLines(altBody).concat(getAnalyzedLinesFromBody(altBody)) : [];
 };
