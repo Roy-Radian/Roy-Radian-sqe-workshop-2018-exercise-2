@@ -2,14 +2,16 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var Expression_Types_1 = require("./Expression-Types");
 var isNumber = function (x) { return (typeof x) === "number"; };
+var isString = function (x) { return (typeof x) === "string"; };
+var isBoolean = function (x) { return (typeof x) === "boolean"; };
 var falseLiteral = 'false';
 var trueLiteral = 'true';
 var isNumericString = function (x) { return !isNaN(Number(x)); };
 var isBooleanString = function (x) { return x.toLowerCase() === falseLiteral || x.toLowerCase() == trueLiteral; };
 var stringToValue = function (str) {
     return isNumericString(str) ? Number(str) :
-        isBooleanString(str) ? Boolean(str) :
-            str;
+        isBooleanString(str) ? str === "true" :
+            str.replace(/"/g, '');
 };
 var paramToValueTuple = function (param) {
     return [{ name: param.trim().split('=')[0], value: stringToValue(param.trim().split('=')[1]) }][0];
@@ -47,11 +49,18 @@ var getValueOfBinaryExpression = function (binaryExpression, varTable) {
     return performBinaryOp(valueExpressionToValue(binaryExpression.left, varTable), valueExpressionToValue(binaryExpression.right, varTable), binaryExpression.operator);
 };
 var performBinaryOp = function (left, right, op) {
-    return isNumber(left) && isNumber(right) && isNumericOp(op) ? performNumericBinaryOp(left, right, op) :
-        performBooleanBinaryOp(left, right, op);
+    return op === '+' ? performAddition(left, right) :
+        isNumber(left) && isNumber(right) && isNumericOp(op) ? performNumericBinaryOp(left, right, op) :
+            performBooleanBinaryOp(left, right, op);
+};
+var performAddition = function (left, right) {
+    return isString(left) ? left + right :
+        isString(right) ? left + right :
+            isBoolean(left) || isBoolean(right) ? "undefined operation + between booleans" :
+                left + right;
 };
 var isNumericOp = function (op) {
-    return ['+', '-', '*', '/', '**'].indexOf(op) != -1;
+    return ['-', '*', '/', '**'].indexOf(op) != -1;
 };
 var performBooleanBinaryOp = function (left, right, op) {
     return op === '>' ? left > right :
@@ -62,17 +71,16 @@ var performBooleanBinaryOp = function (left, right, op) {
                         left === right;
 };
 var performNumericBinaryOp = function (left, right, op) {
-    return op === '+' ? left + right :
-        op === '-' ? left - right :
-            op === '*' ? left * right :
-                op === '/' ? left / right :
-                    Math.pow(left, right);
+    return op === '-' ? left - right :
+        op === '*' ? left * right :
+            op === '/' ? left / right :
+                Math.pow(left, right);
 };
 var getValueOfUnaryExpression = function (unaryExpression, varTable) {
     return performUnaryOp(valueExpressionToValue(unaryExpression.argument, varTable), unaryExpression.operator);
 };
 var performUnaryOp = function (val, op) {
-    return op === '!' ? !val :
+    return op === '!' ? (isBoolean(val) ? !val : "undefined operation: not on a non-boolean") :
         op === '-' ? -val :
             val;
 };

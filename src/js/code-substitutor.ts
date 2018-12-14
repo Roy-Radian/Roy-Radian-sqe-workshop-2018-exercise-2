@@ -17,6 +17,8 @@ import {
 type Value = number | string | boolean;
 
 const isNumber = (x: Value): x is number => (typeof x) === "number";
+const isString = (x: Value): x is string => (typeof x) === "string";
+const isBoolean = (x: Value) : x is boolean => (typeof x) === "boolean";
 
 const falseLiteral = 'false';
 const trueLiteral = 'true';
@@ -26,8 +28,8 @@ const isBooleanString = (x: string): boolean => x.toLowerCase() === falseLiteral
 
 const stringToValue = (str: string): Value =>
     isNumericString(str) ? Number(str) :
-    isBooleanString(str) ? Boolean(str) :
-    str;
+    isBooleanString(str) ? str === "true" :
+    str.replace(/"/g, '');
 
 interface VarTuple {
     name: string;
@@ -68,11 +70,18 @@ const getValueOfBinaryExpression = (binaryExpression: BinaryExpression, varTable
     performBinaryOp(valueExpressionToValue(binaryExpression.left, varTable), valueExpressionToValue(binaryExpression.right, varTable), binaryExpression.operator);
 
 const performBinaryOp = (left: Value, right: Value, op: string): Value =>
+    op === '+' ? performAddition(left, right) :
     isNumber(left) && isNumber(right) && isNumericOp(op) ? performNumericBinaryOp(left, right, op) :
     performBooleanBinaryOp(left, right, op);
 
+const performAddition = (left: Value, right: Value): Value =>
+    isString(left) ? left + right :
+    isString(right) ? left + right :
+    isBoolean(left) || isBoolean(right) ? "undefined operation + between booleans" :
+    left + right;
+
 const isNumericOp = (op: string): boolean =>
-   ['+', '-', '*', '/', '**'].indexOf(op) != -1;
+   ['-', '*', '/', '**'].indexOf(op) != -1;
 
 const performBooleanBinaryOp = (left: Value, right: Value, op: string): Value =>
     op === '>' ? left > right :
@@ -82,8 +91,7 @@ const performBooleanBinaryOp = (left: Value, right: Value, op: string): Value =>
     op === '==' ? left == right :
     left === right;
 
-const performNumericBinaryOp = (left: Value, right: Value, op: string) : Value =>
-    op === '+' ? left + right :
+const performNumericBinaryOp = (left: number, right: number, op: string) : Value =>
     op === '-' ? left - right :
     op === '*' ? left * right :
     op === '/' ? left / right :
@@ -93,7 +101,7 @@ const getValueOfUnaryExpression = (unaryExpression: UnaryExpression, varTable: V
     performUnaryOp(valueExpressionToValue(unaryExpression.argument, varTable), unaryExpression.operator);
 
 const performUnaryOp = (val: Value, op: string): Value =>
-    op === '!' ? !val :
+    op === '!' ? (isBoolean(val) ? !val : "undefined operation: not on a non-boolean") :
     op === '-' ? -val :
     val;
 

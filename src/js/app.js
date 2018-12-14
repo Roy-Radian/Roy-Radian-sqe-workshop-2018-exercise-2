@@ -11,6 +11,7 @@ $(document).ready(function () {
 
         let parsedParams = parseParams(params);
         $('#substitutedCode').val(valueExpressionToValue(parsedCode.body[0].expression, parsedParams));
+
         //$('#substitutedCode').val(JSON.stringify(parsedCode.body[0].expression, null, 2));
         document.getElementById('tblDiv').innerHTML = constructTable(parsedCode);
     });
