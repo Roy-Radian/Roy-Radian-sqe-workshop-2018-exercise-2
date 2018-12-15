@@ -8,8 +8,12 @@ $(document).ready(function () {
         let codeToParse = $('#codePlaceholder').val();
         let parsedCode = parseCode(codeToParse);
 
+        let params = $('#params').val();
+        let parsedParams = parseParams(params);
+        $('#substitutedCode').val(String(valueExpressionToValue(parsedCode.body[0].expression, parsedParams)))
+
         //$('#substitutedCode').val(JSON.stringify(parsedCode.body[0].expression, null, 2));
-        $('#substitutedCode').val(JSON.stringify(parsedCode, null, 2));
+        //$('#substitutedCode').val(JSON.stringify(parsedCode, null, 2));
         document.getElementById('tblDiv').innerHTML = constructTable(parsedCode);
     });
 });

@@ -16,8 +16,8 @@ interface Location {
 export interface Program {
     type: 'Program';
     body: Expression[];
-    /*sourceType: string;
-    loc: Location;*/
+    sourceType: string;
+    loc: Location;
 }
 export const isProgram = (x: object): x is Program => isWithType(x) ? x.type == 'Program' : false;
 
@@ -57,10 +57,10 @@ export interface Literal {
 }
 export const isLiteral = (x: any): x is Literal => isWithType(x) ? x.type === 'Literal' : false;
 
-type BinaryOperator = '+' | '-' | '*' | '/' | '>' | '<' | '>=' | '<=' | '==' | '===' | '**';
+//type BinaryOperator = '+' | '-' | '*' | '/' | '>' | '<' | '>=' | '<=' | '==' | '===' | '**' | '&&' | '||';
 export interface BinaryExpression {
     type: 'BinaryExpression';
-    operator: BinaryOperator;
+    operator: string;
     left: ValueExpression;
     right: ValueExpression;
     loc: Location;
@@ -209,3 +209,6 @@ export interface IfStatement {
     loc: Location;
 }
 export const isIfStatement = (x: any): x is IfStatement => isWithType(x) ? x.type === 'IfStatement' : false;
+
+export const literalToLitExp = (x: any) : Literal =>
+    ({type: "Literal", value: x, raw: String(x), loc: null});

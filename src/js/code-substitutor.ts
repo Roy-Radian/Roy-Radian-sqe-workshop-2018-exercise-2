@@ -24,8 +24,16 @@ import {
     isAtomicExpression,
     AtomicExpression,
     isReturnStatement,
-    CompoundExpression, isExpressionStatement, LoopStatement, isWhileStatement, isDoWhileStatement
+    CompoundExpression,
+    isExpressionStatement,
+    LoopStatement,
+    isWhileStatement,
+    isDoWhileStatement,
+    VariableDeclaration,
+    literalToLitExp
 } from "./Expression-Types";
+import {AnalyzedLine} from "./expression-analyzer";
+import {parseCode} from "./code-analyzer";
 
 type Value = number | string | boolean;
 
@@ -37,33 +45,33 @@ const falseLiteral = 'false';
 const trueLiteral = 'true';
 
 const isNumericString = (x: string) : boolean => !isNaN(Number(x));
-const isBooleanString = (x: string): boolean => x.toLowerCase() === falseLiteral || x.toLowerCase() == trueLiteral;
-
+const isBooleanString = (x: string): boolean => x.toString().toLowerCase() === falseLiteral || x.toString().toLowerCase() === trueLiteral;
 const stringToValue = (str: string): Value =>
+    isBooleanString(str) ? str ://str === trueLiteral :
     isNumericString(str) ? Number(str) :
-    isBooleanString(str) ? str === "true" :
     str.replace(/"/g, '');
 
-interface VarTuple {
+export interface VarTuple {
     name: string;
-    value: Value;
+    //value: Value;
+    value: ValueExpression;
 }
 
 const paramToValueTuple = (param: string): VarTuple =>
-    ({name: param.trim().split('=')[0].trim(), value: stringToValue(param.trim().split('=')[1].trim())});
+    ({name: param.trim().split('=')[0].trim(), value: parseCode(param.trim().split('=')[1].trim()).body[0].expression});
 
 const parseParams = (paramsTxt: string): VarTuple[] =>
     paramsTxt.split(',').map(paramToValueTuple);
 
 const valueExpressionToValue = (v: ValueExpression, varTable: VarTuple[]): Value =>
     isLiteral(v) ? stringToValue(v.value) :
-    isIdentifier(v) ? getValueOfIdentifier(v, varTable) :
+    isIdentifier(v) ? valueExpressionToValue(getValueOfIdentifier(v, varTable), varTable) :
     isComputationExpression(v) ? getValueOfComputationExpression(v, varTable) :
     isConditionalExpression(v) ? getValueOfConditionalExpression(v, varTable) :
     getValOfMemberExpression(v, varTable);
 
-const getValueOfIdentifier = (id: Identifier, varTable: VarTuple[]): Value =>
-    varTable.length == 0 ? "" :
+export const getValueOfIdentifier = (id: Identifier, varTable: VarTuple[]): ValueExpression =>
+    varTable.length == 0 ? null :
     varTable[0].name === id.name ? varTable[0].value :
     getValueOfIdentifier(id, varTable.slice(1));
 
@@ -77,15 +85,16 @@ const getValueOfConditionalExpression = (cond: ConditionalExpression, varTable: 
     valueExpressionToValue(cond.alternate, varTable);
 
 const getValOfMemberExpression = (memberExpression: MemberExpression, varTable: VarTuple[]): Value =>
-    "unsupported: array";
+    "unsupported: array: " + memberExpression.object + "[" + memberExpression.property + "]";
 
 const getValueOfBinaryExpression = (binaryExpression: BinaryExpression, varTable: VarTuple[]): Value =>
     performBinaryOp(valueExpressionToValue(binaryExpression.left, varTable), valueExpressionToValue(binaryExpression.right, varTable), binaryExpression.operator);
 
 const performBinaryOp = (left: Value, right: Value, op: string): Value =>
     op === '+' ? performAddition(left, right) :
+    //isBoolean(left) && isBoolean(right) ? performBooleanBinaryOp(left, right, op) :
     isNumber(left) && isNumber(right) && isNumericOp(op) ? performNumericBinaryOp(left, right, op) :
-    performBooleanBinaryOp(left, right, op);
+    performBooleanEqBinaryOp(left, right, op);
 
 const performAddition = (left: Value, right: Value): Value =>
     isString(left) ? left + right :
@@ -96,13 +105,17 @@ const performAddition = (left: Value, right: Value): Value =>
 const isNumericOp = (op: string): boolean =>
    ['-', '*', '/', '**'].indexOf(op) != -1;
 
-const performBooleanBinaryOp = (left: Value, right: Value, op: string): Value =>
+const performBooleanEqBinaryOp = (left: Value, right: Value, op: string): Value =>
     op === '>' ? left > right :
     op === '<=' ? left <= right :
     op === '<' ? left < right :
     op === '<=' ? left < right :
     op === '==' ? left == right :
     left === right;
+
+/*const performLogicalExpression = (left: boolean, right: boolean, op: string): Value =>
+    op[0] === '&' ? left && right :
+    left || right;*/
 
 const performNumericBinaryOp = (left: number, right: number, op: string) : Value =>
     op === '-' ? left - right :
@@ -119,21 +132,14 @@ const performUnaryOp = (val: Value, op: string): Value =>
     val;
 
 const getValueOfUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): Value =>
-    performUpdate(updateExpression.argument, updateExpression.operator, updateExpression.prefix, varTable);
+    performUpdate(updateExpression, updateExpression.argument, updateExpression.operator, updateExpression.prefix, varTable);
 
-const performUpdate = (assignable: Assignable, op: string, prefix: boolean, varTable: VarTuple[]): Value => { // Mutations due to changing varTable
+const performUpdate = (updateExpression: UpdateExpression, assignable: Assignable, op: string, prefix: boolean, varTable: VarTuple[]): Value => { // Mutations due to changing varTable
     if (isIdentifier(assignable)) {
         let oldValue = valueExpressionToValue(assignable, varTable);
         if (isNumber(oldValue)) {
-            if (prefix)
-                updateVarTable(varTable, assignable, performUpdateOp(oldValue, op));
-
-            let returnValue = getValueOfIdentifier(assignable, varTable);
-
-            if (!prefix)
-                updateVarTable(varTable, assignable, performUpdateOp(oldValue, op));
-
-            return returnValue;
+            updateVarTable(varTable, assignable, {type: "BinaryExpression", operator: op[0], left: assignable, right: literalToLitExp(1), loc: updateExpression.loc}); // Transform the update exp into a binary exp so it would not be calculated more than once
+            return (prefix ? performUpdateOp(oldValue, op) : oldValue);
         }
         return "error: cannot update a non numeric value: " + oldValue;
     }
@@ -141,56 +147,80 @@ const performUpdate = (assignable: Assignable, op: string, prefix: boolean, varT
         return "unsupported: array";
 }
 
-const updateVarTable = (varTable: VarTuple[], id: Identifier, newValue: Value): void => { // Mutations due to changing varTable
+const updateVarTable = (varTable: VarTuple[], id: Identifier, newValue: ValueExpression): void => { // Mutations due to changing varTable
     for (let i = 0; i < varTable.length; i++) {
-        if (varTable[i].name === id.name)
+        if (varTable[i].name === id.name) {
             varTable[i].value = newValue;
+            return;
+        }
     }
+    varTable.push({name: id.name, value: newValue});
 }
 
 const performUpdateOp = (value: number, op: string): Value =>
     op === '++' ? value + 1 :
     value - 1;
 
+/*
+interface ValuedLine {
+    analyzedLine: AnalyzedLine;
+    value: Value;
+}
 
-const substituteExpression = (exp: Expression, varTable: VarTuple[]): Expression =>
+const substituteExpression = (exp: Expression, varTable: VarTuple[]): ValuedLine[] =>
     isAtomicExpression(exp) ? substituteAtomicExpression(exp, varTable) :
     substituteCompoundExpression(exp, varTable);
 
-const substituteAtomicExpression = (exp: AtomicExpression, varTable: VarTuple[]): Expression =>
+const substituteAtomicExpression = (exp: AtomicExpression, varTable: VarTuple[]): ValuedLine[] =>
     isVariableDeclaration(exp) ? substituteVariableDeclaration(exp, varTable) :
     isAssignmentExpression(exp) ? substituteAssignmentExpression(exp, varTable) :
     isReturnStatement(exp) ? substituteReturnStatement(exp, varTable) :
     substituteBreakStatement(exp, varTable);
 
-const substituteCompoundExpression = (exp: CompoundExpression, varTable: VarTuple[]): Expression =>
+const substituteCompoundExpression = (exp: CompoundExpression, varTable: VarTuple[]): ValuedLine[] =>
     isValueExpression(exp) ? substituteValueExpression(exp, varTable) :
     isExpressionStatement(exp) ? substituteExpression(exp.expression, varTable) :
     isLoopStatement(exp) ? substituteLoopStatement(exp, varTable) :
     substituteIfStatement(exp, varTable);
 
-const substituteValueExpression = (exp: ValueExpression, varTable: VarTuple[]): Expression =>
+const substituteValueExpression = (exp: ValueExpression, varTable: VarTuple[]): ValuedLine[] =>
     isLiteral(exp) ? exp :
     isIdentifier(exp) ? substituteIdentifier(exp, varTable) :
     isComputationExpression(exp) ? substituteComputationExpression(exp, varTable) :
     isConditionalExpression(exp) ? substituteConditionalExpression(exp, varTable) :
     substituteMemberExpression(exp, varTable);
 
-const substituteLoopStatement = (loopStatement: LoopStatement, varTable: VarTuple[]): Expression =>
+const substituteLoopStatement = (loopStatement: LoopStatement, varTable: VarTuple[]): ValuedLine[] =>
     isWhileStatement(loopStatement) ? substituteWhileStatement(loopStatement, varTable) :
     isDoWhileStatement(loopStatement) ? substituteDoWhileStatement(loopStatement, varTable) :
     substituteForStatement(loopStatement, varTable);
+
+
+const substituteVariableDeclaration = (varDeclaration: VariableDeclaration, varTable: VarTuple[]): ValuedLine[] => { // Mutations due to changing varTable
+    for (let i = 0; i < varDeclaration.declarations.length; i++) {
+        updateVarTable(varTable, varDeclaration.declarations[i].id, (varDeclaration.declarations[i].init == null ? "null" : valueExpressionToValue(varDeclaration.declarations[i].init, varTable)));
+    }
+    return [];
+}
 
 const getSubstituteExpFunc = (varTable: VarTuple[]) =>
     (exp: Expression) =>
         substituteExpression(exp, varTable);
 
-const substituteProgram = (program: Program, varTable: VarTuple[]): Program =>
-    ({type: "Program", body: program.body.map(getSubstituteExpFunc(varTable))});
+const concatValuedLines = (previous: ValuedLine[], current: ValuedLine[]) => previous.concat(current);
+
+const substituteProgram = (program: Program, varTable: VarTuple[]): ValuedLine[] =>
+    program.body.map(getSubstituteExpFunc(varTable)).reduce(concatValuedLines);
+*/
+
+export {parseParams, valueExpressionToValue};
 
 // TODO: implement all unimplemented functions
+// TODO: Allow an empty input vector
+// TODO: Should I support logical expressions?
 /* TODO: should I support arrays? If so I need to:
 *          * Support ArrayExpression as a value expression
 *          * Somehow support array values in input vector
-*          * Support arrays in value calculations
+*          * Support arrays in value calculations: The type of all the functions will remain Value (and not Value[]) and I will force getValueOfIdentifier to return Value.
+*               I will create a new function getValueOfArrayIdentifier which will return Value as well.
 */
