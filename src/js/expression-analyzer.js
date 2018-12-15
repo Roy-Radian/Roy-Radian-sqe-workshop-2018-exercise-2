@@ -42,28 +42,28 @@ var variableDeclaratorToAnalyzedLine = function (varDec, varTable) {
 };
 var getValOfInit = function (init, varTable) {
     if (varTable === void 0) { varTable = []; }
-    return Expression_Types_1.isValueExpression(init) ? getValOfValExp(init, varTable) :
+    return Expression_Types_1.isValueExpression(init) ? exports.getValOfValExp(init, varTable) :
         'null';
 };
-var getValOfValExp = function (v, varTable) {
+exports.getValOfValExp = function (v, varTable) {
     if (varTable === void 0) { varTable = []; }
     return Expression_Types_1.isLiteral(v) ? v.raw :
-        Expression_Types_1.isIdentifier(v) ? (varTable.length == 0 ? v.name : String(code_substitutor_1.getValueOfIdentifier(v, varTable))) :
+        Expression_Types_1.isIdentifier(v) ? (varTable.length == 0 || code_substitutor_1.isVarParam(v, varTable) ? v.name : String(code_substitutor_1.getValueOfIdentifier(v, varTable))) :
             Expression_Types_1.isComputationExpression(v) ? getValOfComputationExpression(v) :
                 Expression_Types_1.isConditionalExpression(v) ? getValOfConditionalExpression(v) :
                     getValOfMemberExpression(v);
 };
 var getValOfComputationExpression = function (c) {
-    return Expression_Types_1.isBinaryExpression(c) ? '(' + getValOfValExp(c.left) + ' ' + c.operator + ' ' + getValOfValExp(c.right) + ')' :
-        Expression_Types_1.isUnaryExpression(c) ? c.operator + getValOfValExp(c.argument) : // If there were non-prefix unary expressions: (v.prefix ? v.operator + getValOfValExp(v.argument) : getValOfValExp(v.argument) + v.operator) :
-            (c.prefix ? c.operator + getValOfValExp(c.argument) : getValOfValExp(c.argument) + c.operator);
+    return Expression_Types_1.isBinaryExpression(c) ? '(' + exports.getValOfValExp(c.left) + ' ' + c.operator + ' ' + exports.getValOfValExp(c.right) + ')' :
+        Expression_Types_1.isUnaryExpression(c) ? c.operator + exports.getValOfValExp(c.argument) : // If there were non-prefix unary expressions: (v.prefix ? v.operator + getValOfValExp(v.argument) : getValOfValExp(v.argument) + v.operator) :
+            (c.prefix ? c.operator + exports.getValOfValExp(c.argument) : exports.getValOfValExp(c.argument) + c.operator);
 };
 var getValOfConditionalExpression = function (cond) {
-    return "(" + getValOfValExp(cond.test) + " ? " + getValOfValExp(cond.consequent) + " : " + getValOfValExp(cond.alternate) + ")";
+    return "(" + exports.getValOfValExp(cond.test) + " ? " + exports.getValOfValExp(cond.consequent) + " : " + exports.getValOfValExp(cond.alternate) + ")";
 };
 var getValOfMemberExpression = function (m) {
-    return m.computed ? getValOfValExp(m.object) + '[' + getValOfValExp(m.property) + ']' :
-        getValOfValExp(m.object) + '.' + getValOfValExp(m.property);
+    return m.computed ? exports.getValOfValExp(m.object) + '[' + exports.getValOfValExp(m.property) + ']' :
+        exports.getValOfValExp(m.object) + '.' + exports.getValOfValExp(m.property);
 };
 var valueExpressionToAnalyzedLines = function (val, varTable) {
     if (varTable === void 0) { varTable = []; }
@@ -88,34 +88,34 @@ var identifierToAnalyzedLines = function (i, varTable) {
 };
 var binaryExpressionToAnalyzedLines = function (b, varTable) {
     if (varTable === void 0) { varTable = []; }
-    return [{ line: b.loc.start.line, type: b.type, name: EMPTY, condition: EMPTY, value: getValOfValExp(b, varTable) }];
+    return [{ line: b.loc.start.line, type: b.type, name: EMPTY, condition: EMPTY, value: exports.getValOfValExp(b, varTable) }];
 };
 var unaryExpressionToAnalyzedLines = function (u, varTable) {
     if (varTable === void 0) { varTable = []; }
-    return [{ line: u.loc.start.line, type: u.type, name: EMPTY, condition: EMPTY, value: getValOfValExp(u, varTable) }];
+    return [{ line: u.loc.start.line, type: u.type, name: EMPTY, condition: EMPTY, value: exports.getValOfValExp(u, varTable) }];
 };
 var updateExpressionToAnalyzedLines = function (u, varTable) {
     if (varTable === void 0) { varTable = []; }
-    return [{ line: u.loc.start.line, type: u.type, name: getNameOfAssignable(u.argument), condition: EMPTY, value: getValOfValExp(u, varTable) }];
+    return [{ line: u.loc.start.line, type: u.type, name: getNameOfAssignable(u.argument), condition: EMPTY, value: exports.getValOfValExp(u, varTable) }];
 };
 var assignmentExpressionToAnalyzedLines = function (assignmentExpression, varTable) {
     if (varTable === void 0) { varTable = []; }
     return [{ line: assignmentExpression.loc.start.line, type: assignmentExpression.type, name: getNameOfAssignable(assignmentExpression.left), condition: EMPTY, value: getValOfAssignmentExpression(assignmentExpression, varTable) }];
 };
 var getNameOfAssignable = function (a) {
-    return Expression_Types_1.isMemberExpression(a) ? getValOfValExp(a) : a.name;
+    return Expression_Types_1.isMemberExpression(a) ? exports.getValOfValExp(a) : a.name;
 };
 var getValOfAssignmentExpression = function (a, varTable) {
     if (varTable === void 0) { varTable = []; }
-    return (a.operator.length > 1 ? getValOfValExp(a.left, varTable) + ' ' + a.operator[0] + ' ' : '') + getValOfValExp(a.right, varTable);
+    return (a.operator.length > 1 ? exports.getValOfValExp(a.left, varTable) + ' ' + a.operator[0] + ' ' : '') + exports.getValOfValExp(a.right, varTable);
 };
 var returnStatementToAnalyzedLines = function (ret, varTable) {
     if (varTable === void 0) { varTable = []; }
-    return [{ line: ret.loc.start.line, type: ret.type, name: EMPTY, condition: EMPTY, value: getValOfValExp(ret.argument, varTable) }];
+    return [{ line: ret.loc.start.line, type: ret.type, name: EMPTY, condition: EMPTY, value: exports.getValOfValExp(ret.argument, varTable) }];
 };
 var whileStatementToAnalyzedLines = function (whileStatement, varTable) {
     if (varTable === void 0) { varTable = []; }
-    return [{ line: whileStatement.loc.start.line, type: whileStatement.type, name: EMPTY, condition: getValOfValExp(whileStatement.test, varTable), value: EMPTY }];
+    return [{ line: whileStatement.loc.start.line, type: whileStatement.type, name: EMPTY, condition: exports.getValOfValExp(whileStatement.test, varTable), value: EMPTY }];
 };
 var forStatementToAnalyzedLines = function (forStatement, varTable) {
     if (varTable === void 0) { varTable = []; }
@@ -123,7 +123,7 @@ var forStatementToAnalyzedLines = function (forStatement, varTable) {
 };
 var forConditionToAnalyzedLines = function (forStatement, varTable) {
     if (varTable === void 0) { varTable = []; }
-    return [{ line: forStatement.loc.start.line, type: forStatement.type, name: EMPTY, condition: getValOfValExp(forStatement.test, varTable), value: EMPTY }];
+    return [{ line: forStatement.loc.start.line, type: forStatement.type, name: EMPTY, condition: exports.getValOfValExp(forStatement.test, varTable), value: EMPTY }];
 };
 var forInitToAnalyzedLines = function (forStatement, varTable) {
     if (varTable === void 0) { varTable = []; }
@@ -139,21 +139,21 @@ var breakStatementToAnalyzedLines = function (breakStatement) {
     return [{ line: breakStatement.loc.start.line, type: breakStatement.type, name: EMPTY, condition: EMPTY, value: EMPTY }];
 };
 var ifStatementToAnalyzedLines = function (ifStatement) {
-    return [{ line: ifStatement.loc.start.line, type: ifStatement.type, name: EMPTY, condition: getValOfValExp(ifStatement.test), value: EMPTY }];
+    return [{ line: ifStatement.loc.start.line, type: ifStatement.type, name: EMPTY, condition: exports.getValOfValExp(ifStatement.test), value: EMPTY }];
 };
 var elseToAnalyzedLines = function (alt) {
     return [{ line: alt.loc.start.line, type: 'Else', name: EMPTY, condition: EMPTY, value: EMPTY }];
 };
 var conditionalExpressionToAnalyzedLines = function (conditionalExpression, varTable) {
     if (varTable === void 0) { varTable = []; }
-    return [{ line: conditionalExpression.loc.start.line, type: conditionalExpression.type, name: EMPTY, condition: getValOfValExp(conditionalExpression.test, varTable), value: EMPTY }];
+    return [{ line: conditionalExpression.loc.start.line, type: conditionalExpression.type, name: EMPTY, condition: exports.getValOfValExp(conditionalExpression.test, varTable), value: EMPTY }];
 };
 var memberExpressionToAnalyzedLines = function (memberExpression) {
     return [{ line: memberExpression.loc.start.line, type: memberExpression.type, name: getNameOfAssignable(memberExpression), condition: EMPTY, value: EMPTY }];
 };
 var doWhileStatementToAnalyzedLines = function (doWhileStatement, varTable) {
     if (varTable === void 0) { varTable = []; }
-    return [{ line: doWhileStatement.loc.start.line, type: doWhileStatement.type, name: EMPTY, condition: getValOfValExp(doWhileStatement.test, varTable), value: EMPTY }];
+    return [{ line: doWhileStatement.loc.start.line, type: doWhileStatement.type, name: EMPTY, condition: exports.getValOfValExp(doWhileStatement.test, varTable), value: EMPTY }];
 };
 var concatAnalyzedLines = function (prev, curr) { return prev.concat(curr); };
 var programToAnalyzedLines = function (program, varTable) {

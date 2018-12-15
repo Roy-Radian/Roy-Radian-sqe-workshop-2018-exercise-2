@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var Expression_Types_1 = require("./Expression-Types");
+var expression_analyzer_1 = require("./expression-analyzer");
 var code_analyzer_1 = require("./code-analyzer");
 var isNumber = function (x) { return (typeof x) === "number"; };
 var isString = function (x) { return (typeof x) === "string"; };
@@ -14,8 +15,13 @@ var stringToValue = function (str) {
         isNumericString(str) ? Number(str) :
             str.replace(/"/g, '');
 };
+exports.isVarParam = function (id, varTable) {
+    return varTable.length == 0 ? false :
+        varTable[0].name == id.name ? varTable[0].isParam :
+            exports.isVarParam(id, varTable.slice(1));
+};
 var paramToValueTuple = function (param) {
-    return ({ name: param.trim().split('=')[0].trim(), value: code_analyzer_1.parseCode(param.trim().split('=')[1].trim()).body[0].expression });
+    return ({ name: param.trim().split('=')[0].trim(), value: code_analyzer_1.parseCode(param.trim().split('=')[1].trim()).body[0].expression, isParam: true });
 };
 var parseParams = function (paramsTxt) {
     return paramsTxt.split(',').map(paramToValueTuple);
@@ -28,10 +34,9 @@ var valueExpressionToValue = function (v, varTable) {
                 Expression_Types_1.isConditionalExpression(v) ? getValueOfConditionalExpression(v, varTable) :
                     getValOfMemberExpression(v, varTable);
 };
-exports.valueExpressionToValue = valueExpressionToValue;
 exports.getValueOfIdentifier = function (id, varTable) {
     return varTable.length == 0 ? null :
-        varTable[0].name === id.name ? varTable[0].value :
+        varTable[0].name == id.name ? varTable[0].value :
             exports.getValueOfIdentifier(id, varTable.slice(1));
 };
 var getValueOfComputationExpression = function (comp, varTable) {
@@ -111,13 +116,110 @@ var updateVarTable = function (varTable, id, newValue) {
             return;
         }
     }
-    varTable.push({ name: id.name, value: newValue });
+    varTable.push({ name: id.name, value: newValue, isParam: false });
 };
 var performUpdateOp = function (value, op) {
     return op === '++' ? value + 1 :
         value - 1;
 };
-// TODO: implement all unimplemented functions
+var analyzedLineToValuedLine = function (expression, value, varTable) {
+    return ({ analyzedLine: expression_analyzer_1.getAllAnalyzedLines(expression, varTable)[0], value: value });
+};
+var NO_LINES = [];
+var closeBlockLine = {
+    analyzedLine: { line: -1, type: 'BlockClosing', name: '', condition: '', value: '' },
+    value: 0
+};
+var doWhileEndLine = function (cond, value) { return ({
+    analyzedLine: { line: -1, type: 'DoWhileEnd', name: '', condition: cond, value: '' },
+    value: value
+}); };
+var copyArr = function (arr) { return arr.slice(); };
+var substituteExpression = function (exp, varTable) {
+    return Expression_Types_1.isAtomicExpression(exp) ? substituteAtomicExpression(exp, varTable) :
+        substituteCompoundExpression(exp, varTable);
+};
+var substituteAtomicExpression = function (exp, varTable) {
+    return Expression_Types_1.isVariableDeclaration(exp) ? substituteVariableDeclaration(exp, varTable) :
+        Expression_Types_1.isAssignmentExpression(exp) ? substituteAssignmentExpression(exp, varTable) :
+            Expression_Types_1.isReturnStatement(exp) ? substituteReturnStatement(exp, varTable) :
+                substituteBreakStatement(exp, varTable);
+};
+var substituteCompoundExpression = function (exp, varTable) {
+    return Expression_Types_1.isFunctionDeclaration(exp) ? substituteFunctionDeclaration(exp, varTable) :
+        Expression_Types_1.isValueExpression(exp) ? substituteValueExpression(exp, varTable) :
+            Expression_Types_1.isExpressionStatement(exp) ? substituteExpression(exp.expression, varTable) :
+                Expression_Types_1.isIfStatement(exp) ? substituteIfStatement(exp, varTable) :
+                    substituteLoopStatement(exp, varTable);
+};
+var substituteFunctionDeclaration = function (func, varTable) {
+    return [analyzedLineToValuedLine(func, 0, varTable)].concat(getValuedLinesOfBody(func.body, varTable));
+};
+var substituteValueExpression = function (exp, varTable) {
+    return Expression_Types_1.isUpdateExpression(exp) ? substituteUpdateExpression(exp, varTable) : NO_LINES;
+};
+var substituteUpdateExpression = function (updateExpression, varTable) {
+    getValueOfUpdateExpression(updateExpression, varTable); // This will update varTable - we don't need the value
+    return NO_LINES;
+};
+var getValuedLinesOfBody = function (body, varTable) {
+    return Expression_Types_1.isExpression(body) ? substituteExpression(body, copyArr(varTable)) : body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines).concat([closeBlockLine]);
+};
+var substituteIfStatement = function (ifStatement, varTable) {
+    return [analyzedLineToValuedLine(ifStatement, valueExpressionToValue(ifStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(ifStatement.consequent, varTable));
+};
+var substituteLoopStatement = function (loopStatement, varTable) {
+    return Expression_Types_1.isWhileStatement(loopStatement) ? substituteWhileStatement(loopStatement, varTable) :
+        Expression_Types_1.isDoWhileStatement(loopStatement) ? substituteDoWhileStatement(loopStatement, varTable) :
+            substituteForStatement(loopStatement, varTable);
+};
+var substituteWhileStatement = function (whileStatement, varTable) {
+    return [analyzedLineToValuedLine(whileStatement, valueExpressionToValue(whileStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(whileStatement.body, varTable));
+};
+var substituteDoWhileStatement = function (doWhileStatement, varTable) {
+    return [analyzedLineToValuedLine(doWhileStatement, valueExpressionToValue(doWhileStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(doWhileStatement.body, varTable)).concat(getDoWhileEndLine(expression_analyzer_1.getValOfValExp(doWhileStatement.test, varTable), valueExpressionToValue(doWhileStatement.test, varTable)));
+};
+var getDoWhileEndLine = function (cond, value) {
+    return [doWhileEndLine(cond, value)];
+};
+var substituteForStatement = function (forStatement, varTable) {
+    return [analyzedLineToValuedLine(forStatement, valueExpressionToValue(forStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(forStatement.body, varTable));
+};
+var substituteVariableDeclaration = function (varDeclaration, varTable) {
+    for (var i = 0; i < varDeclaration.declarations.length; i++) {
+        updateVarTable(varTable, varDeclaration.declarations[i].id, (varDeclaration.declarations[i].init == null ? Expression_Types_1.literalToLitExp(0) : varDeclaration.declarations[i].init));
+    }
+    return NO_LINES;
+};
+var substituteAssignmentExpression = function (assignmentExpression, varTable) {
+    addAssignmentToVarTable(assignmentExpression.left, assignmentExpression.operator, assignmentExpression.right, varTable);
+    var left = assignmentExpression.left;
+    if (Expression_Types_1.isIdentifier(left)) {
+        if (exports.isVarParam(left, varTable))
+            return [analyzedLineToValuedLine(left, valueExpressionToValue(assignmentExpression.right, varTable), varTable)];
+    }
+    return NO_LINES;
+};
+var addAssignmentToVarTable = function (assignable, op, value, varTable) {
+    if (Expression_Types_1.isIdentifier(assignable))
+        updateVarTable(varTable, assignable, value);
+};
+var substituteReturnStatement = function (returnStatement, varTable) {
+    return [analyzedLineToValuedLine(returnStatement, valueExpressionToValue(returnStatement.argument, varTable), varTable)];
+};
+var substituteBreakStatement = function (b, varTable) {
+    return [analyzedLineToValuedLine(b, 0, varTable)];
+};
+var getSubstituteExpFunc = function (varTable) {
+    return function (exp) {
+        return substituteExpression(exp, varTable);
+    };
+};
+var concatValuedLines = function (previous, current) { return previous.concat(current); };
+var substituteProgram = function (program, varTable) {
+    return program.body.map(getSubstituteExpFunc(varTable)).reduce(concatValuedLines);
+};
+exports.substituteProgram = substituteProgram;
 // TODO: Allow an empty input vector
 // TODO: Should I support logical expressions?
 /* TODO: should I support arrays? If so I need to:

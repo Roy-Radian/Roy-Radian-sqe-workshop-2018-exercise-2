@@ -37,7 +37,7 @@ import {
     WhileStatement,
     Body
 } from "./Expression-Types";
-import {getValueOfIdentifier, VarTuple} from "./code-substitutor";
+import {getValueOfIdentifier, isVarParam, VarTuple} from "./code-substitutor";
 
 const EMPTY = '';
 interface AnalyzedLine {
@@ -81,9 +81,9 @@ const getValOfInit = (init: ValueExpression | null, varTable: VarTuple[] = []): 
     isValueExpression(init) ? getValOfValExp(init, varTable) :
     'null';
 
-const getValOfValExp = (v: ValueExpression, varTable: VarTuple[] = []): string =>
+export const getValOfValExp = (v: ValueExpression, varTable: VarTuple[] = []): string =>
     isLiteral(v) ? v.raw :
-    isIdentifier(v) ? (varTable.length == 0 ? v.name : String(getValueOfIdentifier(v, varTable)))  :
+    isIdentifier(v) ? (varTable.length == 0 || isVarParam(v, varTable) ? v.name : String(getValueOfIdentifier(v, varTable)))  :
     isComputationExpression(v) ? getValOfComputationExpression(v) :
     isConditionalExpression(v) ? getValOfConditionalExpression(v) :
     getValOfMemberExpression(v);
