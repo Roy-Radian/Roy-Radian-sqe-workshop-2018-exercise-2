@@ -199,7 +199,7 @@ var substituteAssignmentExpression = function (assignmentExpression, varTable) {
     var left = assignmentExpression.left;
     if (Expression_Types_1.isIdentifier(left)) {
         if (exports.isVarParam(left, varTable))
-            return [analyzedLineToValuedLine(left, valueExpressionToValue(assignmentExpression.right, varTable), varTable)];
+            return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(assignmentExpression.right, varTable), varTable)];
     }
     return NO_LINES;
 };

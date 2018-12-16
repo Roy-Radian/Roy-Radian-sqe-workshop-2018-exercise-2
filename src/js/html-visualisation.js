@@ -96,20 +96,23 @@ var valuedFuncToHtml = function (line, params) {
 };
 var valuedIfToHtml = function (line) {
     ident += tabLength;
-    return "if (" + line.analyzedLine.condition + ") {";
+    return markLine("if (" + line.analyzedLine.condition + ") {", line);
 };
 var valuedUpdateToHtml = function (line) {
     return line.analyzedLine.value + ";";
 };
 var valuedWhileToHtml = function (line) {
     ident += tabLength;
-    return "while (" + line.analyzedLine.condition + ") {";
+    return markLine("while (" + line.analyzedLine.condition + ") {", line);
 };
 var valuedDoWhileToHtml = function (line) {
     ident += tabLength;
-    return "do (" + line.analyzedLine.condition + ") {";
+    return markLine("do (" + line.analyzedLine.condition + ") {", line);
 };
 var valuedForLineToHtml = function (line) {
     ident += tabLength;
-    return "for (" + line.analyzedLine.condition + ") {";
+    return markLine("for (" + line.analyzedLine.condition + ") {", line);
+};
+var markLine = function (str, line) {
+    return "<mark style=\"background-color:" + (line.value ? "green" : "red") + "\">" + str + "</mark>";
 };

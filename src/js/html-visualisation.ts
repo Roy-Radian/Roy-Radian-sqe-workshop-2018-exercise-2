@@ -100,7 +100,7 @@ const valuedFuncToHtml = (line: ValuedLine, params: string[]): string => {
 
 const valuedIfToHtml = (line: ValuedLine): string => {
     ident += tabLength;
-    return `if (${line.analyzedLine.condition}) {`;
+    return markLine(`if (${line.analyzedLine.condition}) {`, line);
 }
 
 const valuedUpdateToHtml = (line: ValuedLine): string =>
@@ -108,17 +108,20 @@ const valuedUpdateToHtml = (line: ValuedLine): string =>
 
 const valuedWhileToHtml = (line: ValuedLine): string => {
     ident += tabLength;
-    return `while (${line.analyzedLine.condition}) {`;
+    return markLine(`while (${line.analyzedLine.condition}) {`, line);
 }
 
 const valuedDoWhileToHtml = (line: ValuedLine): string => {
     ident += tabLength;
-    return `do (${line.analyzedLine.condition}) {`;
+    return markLine(`do (${line.analyzedLine.condition}) {`, line);
 }
 
 const valuedForLineToHtml = (line: ValuedLine): string => {
     ident += tabLength;
-    return `for (${line.analyzedLine.condition}) {`;
+    return markLine(`for (${line.analyzedLine.condition}) {`, line);
 }
+
+const markLine = (str: string, line: ValuedLine): string =>
+    `<mark style="background-color:${line.value ? `green` : `red`}">${str}</mark>`;
 
 export {constructTable, constructSubstitution};

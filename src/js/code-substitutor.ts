@@ -262,7 +262,7 @@ const substituteAssignmentExpression = (assignmentExpression: AssignmentExpressi
     let left = assignmentExpression.left;
     if (isIdentifier(left)) {
         if (isVarParam(left, varTable))
-            return [analyzedLineToValuedLine(left, valueExpressionToValue(assignmentExpression.right, varTable), varTable)];
+            return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(assignmentExpression.right, varTable), varTable)];
     }
     return NO_LINES;
 }
