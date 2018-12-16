@@ -39,7 +39,7 @@ import {
     Body,
     isExpression, isFunctionDeclaration, FunctionDeclaration, WhileStatement, DoWhileStatement, ForStatement
 } from "./Expression-Types";
-import {AnalyzedLine, getAllAnalyzedLines, getValOfValExp} from "./expression-analyzer";
+import {AnalyzedLine, getAllAnalyzedLines, getFirstAnalyzedLine, getValOfValExp} from "./expression-analyzer";
 import {parseCode} from "./code-analyzer";
 
 type Value = number | string | boolean;
@@ -77,15 +77,18 @@ const parseParams = (paramsTxt: string): VarTuple[] =>
 
 const valueExpressionToValue = (v: ValueExpression, varTable: VarTuple[]): Value =>
     isLiteral(v) ? stringToValue(v.value) :
-    isIdentifier(v) ? valueExpressionToValue(getValueOfIdentifier(v, varTable), varTable) :
+    isIdentifier(v) ? valueExpressionToValue(getValueExpressionOfIdentifier(v, varTable), varTable) :
     isComputationExpression(v) ? getValueOfComputationExpression(v, varTable) :
     isConditionalExpression(v) ? getValueOfConditionalExpression(v, varTable) :
     getValOfMemberExpression(v, varTable);
 
-export const getValueOfIdentifier = (id: Identifier, varTable: VarTuple[]): ValueExpression =>
+export const getValueExpressionOfIdentifier = (id: Identifier, varTable: VarTuple[]): ValueExpression =>
     varTable.length == 0 ? null :
     varTable[0].name == id.name ? varTable[0].value :
-    getValueOfIdentifier(id, varTable.slice(1));
+    getValueExpressionOfIdentifier(id, varTable.slice(1));
+
+const getValueOfIdentifier = (id: Identifier, varTable: VarTuple[]): Value =>
+    valueExpressionToValue(getValueExpressionOfIdentifier(id, varTable), varTable);
 
 const getValueOfComputationExpression = (comp: ComputationExpression, varTable: VarTuple[]): Value =>
     isBinaryExpression(comp) ? getValueOfBinaryExpression(comp, varTable) :
@@ -161,7 +164,7 @@ const performUpdate = (updateExpression: UpdateExpression, assignable: Assignabl
 
 const updateVarTable = (varTable: VarTuple[], id: Identifier, newValue: ValueExpression): void => { // Mutations due to changing varTable
     for (let i = 0; i < varTable.length; i++) {
-        if (varTable[i].name === id.name) {
+        if (varTable[i].name == id.name) {
             varTable[i].value = newValue;
             return;
         }
@@ -180,7 +183,7 @@ export interface ValuedLine {
 }
 
 const analyzedLineToValuedLine = (expression: Expression, value: Value, varTable: VarTuple[]): ValuedLine =>
-    ({analyzedLine: getAllAnalyzedLines(expression, varTable)[0], value: value});
+    ({analyzedLine: getFirstAnalyzedLine(expression, varTable), value: value});
 
 const NO_LINES = [];
 
@@ -225,7 +228,7 @@ const substituteUpdateExpression = (updateExpression: UpdateExpression, varTable
 }
 
 const getValuedLinesOfBody = (body: Body, varTable: VarTuple[]): ValuedLine[] =>
-    isExpression(body) ? substituteExpression(body, copyArr(varTable)) : body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines).concat([closeBlockLine]);
+    (isExpression(body) ? substituteExpression(body, copyArr(varTable)) : body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines)).concat([closeBlockLine]);
 
 const substituteIfStatement = (ifStatement: IfStatement, varTable: VarTuple[]): ValuedLine[] =>
     [analyzedLineToValuedLine(ifStatement, valueExpressionToValue(ifStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(ifStatement.consequent, varTable));

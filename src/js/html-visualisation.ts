@@ -13,7 +13,7 @@ const constructTable = (program: any): string =>
 
 let ident: number = 0;
 const tabLength: number = 4;
-const space: string = ' ';
+const space: string = '&nbsp;';
 const generateIdenttation = (): string => {
     let tab = "";
     for (let i = 0; i < ident; i++) {
@@ -42,11 +42,11 @@ const paramsIntoList = (params: VarTuple[]): string[] =>
     [params[0].name].concat(paramsIntoList(params.slice(1)));
 
 const valuedLinesIntoTable = (lines: ValuedLine[], params: string[]): string =>
-    lines.length > 0 ? '<table>' + lines.map((line: ValuedLine): string => valuedLineToHtml(line, params)).reduce(concatStringTableEntries) + '</table>' : '';
+    lines.length > 0 ? lines.map((line: ValuedLine): string => valuedLineToHtml(line, params)).reduce(concatStringTableEntries) : '';
 
 const valuedLineToHtml = (line: ValuedLine, params: string[]): string =>
-    atomicTypes.indexOf(line.analyzedLine.type) != -1 ? valuedAtomicToHtml(line) :
-    generateIdenttation() + valuedCompoundToHtml(line, params);
+    (atomicTypes.indexOf(line.analyzedLine.type) != -1 ? valuedAtomicToHtml(line) :
+    generateIdenttation() + valuedCompoundToHtml(line, params)) + "<br/>";
 
 const valuedAtomicToHtml = (line: ValuedLine): string =>
     line.analyzedLine.type == 'VariableDeclaration' ? generateIdenttation() + valuedDeclarationToHtml(line) :
@@ -72,53 +72,53 @@ const valuedLoopToHtml = (line: ValuedLine): string =>
     valuedForLineToHtml(line);
 
 const valuedDeclarationToHtml = (line: ValuedLine): string =>
-    `<tr><td>let ${line.analyzedLine.name} ${(line.value != 'null' ? ' = ' + line.analyzedLine.value : '')};</td></tr>`;
+    `let ${line.analyzedLine.name} ${(line.value != 'null' ? ' = ' + line.analyzedLine.value : '')};`;
 
 const valuedAssignmentToHtml = (line: ValuedLine): string =>
-    `<tr><td>${line.analyzedLine.name} = ${line.analyzedLine.value};</td></tr>`;
+    `${line.analyzedLine.name} = ${line.analyzedLine.value};`;
 
 const valuedReturnStatementToHtml = (line: ValuedLine): string =>
-    `<tr><td>return ${line.analyzedLine.value};</td></tr>`;
+    `return ${line.analyzedLine.value};`;
 
 const valuedBreakToHtml = (line: ValuedLine): string =>
-    `<tr><td>break;</td></tr>`;
+    `break;`;
 
 const doWhileEndToHtml = (line: ValuedLine): string => {
     ident -= tabLength;
-    return generateIdenttation() + `<tr><td>} while (${line.analyzedLine.condition});</td></tr>`;
+    return generateIdenttation() + `} while (${line.analyzedLine.condition});`;
 }
 
 const blockClosingToHtml = (line: ValuedLine): string => {
     ident -= tabLength;
-    return generateIdenttation() + `<tr><td>}</td></tr>`;
+    return generateIdenttation() + `}`;
 }
 
 const valuedFuncToHtml = (line: ValuedLine, params: string[]): string => {
     ident += tabLength;
-    return `<tr><td>function ${line.analyzedLine.name}(${params}) {</td></tr>`;
+    return `function ${line.analyzedLine.name}(${params}) {`;
 }
 
 const valuedIfToHtml = (line: ValuedLine): string => {
     ident += tabLength;
-    return `<tr><td>if (${line.analyzedLine.condition}) {</td></tr>`;
+    return `if (${line.analyzedLine.condition}) {`;
 }
 
 const valuedUpdateToHtml = (line: ValuedLine): string =>
-    `<tr><td>${line.analyzedLine.value};</td></tr>`;
+    `${line.analyzedLine.value};`;
 
 const valuedWhileToHtml = (line: ValuedLine): string => {
     ident += tabLength;
-    return `<tr><td>while (${line.analyzedLine.condition}) {</td></tr>`;
+    return `while (${line.analyzedLine.condition}) {`;
 }
 
 const valuedDoWhileToHtml = (line: ValuedLine): string => {
     ident += tabLength;
-    return `<tr><td>do (${line.analyzedLine.condition}) {</td></tr>`;
+    return `do (${line.analyzedLine.condition}) {`;
 }
 
 const valuedForLineToHtml = (line: ValuedLine): string => {
     ident += tabLength;
-    return `<tr><td>for (${line.analyzedLine.condition}) {</td></tr>`;
+    return `for (${line.analyzedLine.condition}) {`;
 }
 
 export {constructTable, constructSubstitution};

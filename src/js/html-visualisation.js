@@ -15,7 +15,7 @@ var constructTable = function (program) {
 exports.constructTable = constructTable;
 var ident = 0;
 var tabLength = 4;
-var space = ' ';
+var space = '&nbsp;';
 var generateIdenttation = function () {
     var tab = "";
     for (var i = 0; i < ident; i++) {
@@ -41,11 +41,11 @@ var paramsIntoList = function (params) {
         [params[0].name].concat(paramsIntoList(params.slice(1)));
 };
 var valuedLinesIntoTable = function (lines, params) {
-    return lines.length > 0 ? '<table>' + lines.map(function (line) { return valuedLineToHtml(line, params); }).reduce(concatStringTableEntries) + '</table>' : '';
+    return lines.length > 0 ? lines.map(function (line) { return valuedLineToHtml(line, params); }).reduce(concatStringTableEntries) : '';
 };
 var valuedLineToHtml = function (line, params) {
-    return atomicTypes.indexOf(line.analyzedLine.type) != -1 ? valuedAtomicToHtml(line) :
-        generateIdenttation() + valuedCompoundToHtml(line, params);
+    return (atomicTypes.indexOf(line.analyzedLine.type) != -1 ? valuedAtomicToHtml(line) :
+        generateIdenttation() + valuedCompoundToHtml(line, params)) + "<br/>";
 };
 var valuedAtomicToHtml = function (line) {
     return line.analyzedLine.type == 'VariableDeclaration' ? generateIdenttation() + valuedDeclarationToHtml(line) :
@@ -71,45 +71,45 @@ var valuedLoopToHtml = function (line) {
             valuedForLineToHtml(line);
 };
 var valuedDeclarationToHtml = function (line) {
-    return "<tr><td>let " + line.analyzedLine.name + " " + (line.value != 'null' ? ' = ' + line.analyzedLine.value : '') + ";</td></tr>";
+    return "let " + line.analyzedLine.name + " " + (line.value != 'null' ? ' = ' + line.analyzedLine.value : '') + ";";
 };
 var valuedAssignmentToHtml = function (line) {
-    return "<tr><td>" + line.analyzedLine.name + " = " + line.analyzedLine.value + ";</td></tr>";
+    return line.analyzedLine.name + " = " + line.analyzedLine.value + ";";
 };
 var valuedReturnStatementToHtml = function (line) {
-    return "<tr><td>return " + line.analyzedLine.value + ";</td></tr>";
+    return "return " + line.analyzedLine.value + ";";
 };
 var valuedBreakToHtml = function (line) {
-    return "<tr><td>break;</td></tr>";
+    return "break;";
 };
 var doWhileEndToHtml = function (line) {
     ident -= tabLength;
-    return generateIdenttation() + ("<tr><td>} while (" + line.analyzedLine.condition + ");</td></tr>");
+    return generateIdenttation() + ("} while (" + line.analyzedLine.condition + ");");
 };
 var blockClosingToHtml = function (line) {
     ident -= tabLength;
-    return generateIdenttation() + "<tr><td>}</td></tr>";
+    return generateIdenttation() + "}";
 };
 var valuedFuncToHtml = function (line, params) {
     ident += tabLength;
-    return "<tr><td>function " + line.analyzedLine.name + "(" + params + ") {</td></tr>";
+    return "function " + line.analyzedLine.name + "(" + params + ") {";
 };
 var valuedIfToHtml = function (line) {
     ident += tabLength;
-    return "<tr><td>if (" + line.analyzedLine.condition + ") {</td></tr>";
+    return "if (" + line.analyzedLine.condition + ") {";
 };
 var valuedUpdateToHtml = function (line) {
-    return "<tr><td>" + line.analyzedLine.value + ";</td></tr>";
+    return line.analyzedLine.value + ";";
 };
 var valuedWhileToHtml = function (line) {
     ident += tabLength;
-    return "<tr><td>while (" + line.analyzedLine.condition + ") {</td></tr>";
+    return "while (" + line.analyzedLine.condition + ") {";
 };
 var valuedDoWhileToHtml = function (line) {
     ident += tabLength;
-    return "<tr><td>do (" + line.analyzedLine.condition + ") {</td></tr>";
+    return "do (" + line.analyzedLine.condition + ") {";
 };
 var valuedForLineToHtml = function (line) {
     ident += tabLength;
-    return "<tr><td>for (" + line.analyzedLine.condition + ") {</td></tr>";
+    return "for (" + line.analyzedLine.condition + ") {";
 };
