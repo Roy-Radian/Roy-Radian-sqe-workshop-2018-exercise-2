@@ -26,7 +26,8 @@ var generateIdenttation = function () {
 var analyzedLinesIntoTable = function (entries) {
     return entries.length > 0 ? '<table>' + headers + entries.map(function (tblEntry) { return analyzedLineToHtml(tblEntry); }).reduce(concatStringTableEntries) + '</table>' : '';
 };
-var atomicTypes = ['VariableDeclaration', 'AssignmentExpression', 'ReturnStatement', 'BreakStatement', 'DoWhileEnd', 'BlockClosing'];
+var specialLines = ['ReturnStatement', 'BreakStatement', 'DoWhileEnd', 'BlockClosing', 'Else'];
+var atomicTypes = ['VariableDeclaration', 'AssignmentExpression'].concat(specialLines);
 var loopTypes = ['WhileStatement', 'DoWhileStatement', 'ForStatement'];
 var computationTypes = ['BinaryExpression', 'UnaryExpresion', 'UpdateExpression'];
 var valueTypes = ['Literal', 'Identifier', 'MemberExpression', 'ConditionalExpression'].concat(computationTypes);
@@ -50,10 +51,14 @@ var valuedLineToHtml = function (line, params) {
 var valuedAtomicToHtml = function (line) {
     return line.analyzedLine.type == 'VariableDeclaration' ? generateIdenttation() + valuedDeclarationToHtml(line) :
         line.analyzedLine.type == 'AssignmentExpression' ? generateIdenttation() + valuedAssignmentToHtml(line) :
-            line.analyzedLine.type == 'ReturnStatement' ? generateIdenttation() + valuedReturnStatementToHtml(line) :
-                line.analyzedLine.type == 'BreakStatement' ? generateIdenttation() + valuedBreakToHtml(line) :
-                    line.analyzedLine.type == 'DoWhileEnd' ? doWhileEndToHtml(line) :
-                        blockClosingToHtml(line);
+            specialLineToHtml(line);
+};
+var specialLineToHtml = function (line) {
+    return line.analyzedLine.type == 'ReturnStatement' ? generateIdenttation() + valuedReturnStatementToHtml(line) :
+        line.analyzedLine.type == 'BreakStatement' ? generateIdenttation() + valuedBreakToHtml(line) :
+            line.analyzedLine.type == 'DoWhileEnd' ? doWhileEndToHtml(line) :
+                line.analyzedLine.type == 'Else' ? generateIdenttation() + elseToHtml(line) :
+                    blockClosingToHtml(line);
 };
 var valuedCompoundToHtml = function (line, params) {
     return line.analyzedLine.type == 'FunctionDeclaration' ? valuedFuncToHtml(line, params) :
@@ -85,6 +90,10 @@ var valuedBreakToHtml = function (line) {
 var doWhileEndToHtml = function (line) {
     ident -= tabLength;
     return generateIdenttation() + ("} while (" + line.analyzedLine.condition + ");");
+};
+var elseToHtml = function (line) {
+    ident += tabLength;
+    return "else";
 };
 var blockClosingToHtml = function (line) {
     ident -= tabLength;

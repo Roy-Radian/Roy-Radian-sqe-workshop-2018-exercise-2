@@ -26,7 +26,8 @@ const analyzedLinesIntoTable = (entries: AnalyzedLine[]): string =>
     entries.length > 0 ? '<table>' + headers + entries.map((tblEntry: AnalyzedLine): string => analyzedLineToHtml(tblEntry)).reduce(concatStringTableEntries) + '</table>' : '';
 
 
-const atomicTypes = ['VariableDeclaration', 'AssignmentExpression', 'ReturnStatement', 'BreakStatement', 'DoWhileEnd', 'BlockClosing'];
+const specialLines = ['ReturnStatement', 'BreakStatement', 'DoWhileEnd', 'BlockClosing', 'Else'];
+const atomicTypes = ['VariableDeclaration', 'AssignmentExpression'].concat(specialLines);
 const loopTypes = ['WhileStatement', 'DoWhileStatement', 'ForStatement'];
 const computationTypes = ['BinaryExpression', 'UnaryExpresion', 'UpdateExpression'];
 const valueTypes = ['Literal', 'Identifier', 'MemberExpression', 'ConditionalExpression'].concat(computationTypes);
@@ -51,9 +52,13 @@ const valuedLineToHtml = (line: ValuedLine, params: string[]): string =>
 const valuedAtomicToHtml = (line: ValuedLine): string =>
     line.analyzedLine.type == 'VariableDeclaration' ? generateIdenttation() + valuedDeclarationToHtml(line) :
     line.analyzedLine.type == 'AssignmentExpression' ? generateIdenttation() +  valuedAssignmentToHtml(line) :
+    specialLineToHtml(line);
+
+const specialLineToHtml = (line: ValuedLine): string =>
     line.analyzedLine.type == 'ReturnStatement' ? generateIdenttation() + valuedReturnStatementToHtml(line) :
     line.analyzedLine.type == 'BreakStatement' ? generateIdenttation() + valuedBreakToHtml(line) :
     line.analyzedLine.type == 'DoWhileEnd' ? doWhileEndToHtml(line) :
+    line.analyzedLine.type == 'Else' ? generateIdenttation() + elseToHtml(line) :
     blockClosingToHtml(line);
 
 const valuedCompoundToHtml = (line: ValuedLine, params: string[]): string =>
@@ -86,6 +91,11 @@ const valuedBreakToHtml = (line: ValuedLine): string =>
 const doWhileEndToHtml = (line: ValuedLine): string => {
     ident -= tabLength;
     return generateIdenttation() + `} while (${line.analyzedLine.condition});`;
+}
+
+const elseToHtml = (line: ValuedLine): string => {
+    ident += tabLength;
+    return `else`;
 }
 
 const blockClosingToHtml = (line: ValuedLine): string => {

@@ -137,7 +137,11 @@ var doWhileEndLine = function (cond, value) { return ({
     analyzedLine: { line: -1, type: 'DoWhileEnd', name: '', condition: cond, value: '' },
     value: value
 }); };
-var copyArr = function (arr) { return arr.slice(); };
+var elseLine = {
+    analyzedLine: { line: -1, type: "Else", name: '', condition: '', value: '' },
+    value: 0
+};
+var copyArr = function (arr) { return JSON.parse(JSON.stringify(arr)); };
 var replaceVarInValueExpression = function (id, valueExpression, varTable) {
     return Expression_Types_1.isIdentifier(valueExpression) ? (id.name == valueExpression.name ? exports.getValueExpressionOfIdentifier(valueExpression, varTable) : valueExpression) :
         Expression_Types_1.isLiteral(valueExpression) ? valueExpression :
@@ -183,10 +187,10 @@ var substituteUpdateExpression = function (updateExpression, varTable) {
     return NO_LINES;
 };
 var getValuedLinesOfBody = function (body, varTable) {
-    return (Expression_Types_1.isExpression(body) ? substituteExpression(body, copyArr(varTable)) : body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines)).concat([closeBlockLine]);
+    return Expression_Types_1.isBody(body) ? (Expression_Types_1.isExpression(body) ? substituteExpression(body, copyArr(varTable)) : body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines)).concat([closeBlockLine]) : [];
 };
 var substituteIfStatement = function (ifStatement, varTable) {
-    return [analyzedLineToValuedLine(ifStatement, valueExpressionToValue(ifStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(ifStatement.consequent, varTable));
+    return [analyzedLineToValuedLine(ifStatement, valueExpressionToValue(ifStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(ifStatement.consequent, varTable)).concat([elseLine]).concat(getValuedLinesOfBody(ifStatement.alternate, varTable));
 };
 var substituteLoopStatement = function (loopStatement, varTable) {
     return Expression_Types_1.isWhileStatement(loopStatement) ? substituteWhileStatement(loopStatement, varTable) :

@@ -47,7 +47,7 @@ import {
     createUnaryExpression,
     createUpdateExpression,
     createConditionalExpression,
-    createMemberExpression
+    createMemberExpression, isBody
 } from "./Expression-Types";
 import {AnalyzedLine, getAllAnalyzedLines, getFirstAnalyzedLine, getValOfValExp} from "./expression-analyzer";
 import {parseCode} from "./code-analyzer";
@@ -207,7 +207,12 @@ const doWhileEndLine = (cond: string, value: Value): ValuedLine => ({
     value: value
 });
 
-const copyArr = <T>(arr: T[]): T[] => arr.slice();
+const elseLine = {
+    analyzedLine: {line: -1, type: "Else", name: '', condition: '', value: ''},
+    value: 0
+};
+
+const copyArr = <T>(arr: T[]): T[] => JSON.parse(JSON.stringify(arr));
 
 const replaceVarInValueExpression = (id: Identifier, valueExpression: ValueExpression, varTable: VarTuple[]): ValueExpression =>
     isIdentifier(valueExpression) ? (id.name == valueExpression.name ? getValueExpressionOfIdentifier(valueExpression, varTable) : valueExpression):
@@ -254,11 +259,11 @@ const substituteUpdateExpression = (updateExpression: UpdateExpression, varTable
     return NO_LINES;
 }
 
-const getValuedLinesOfBody = (body: Body, varTable: VarTuple[]): ValuedLine[] =>
-    (isExpression(body) ? substituteExpression(body, copyArr(varTable)) : body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines)).concat([closeBlockLine]);
+const getValuedLinesOfBody = (body: Body | null, varTable: VarTuple[]): ValuedLine[] =>
+    isBody(body) ? (isExpression(body) ? substituteExpression(body, copyArr(varTable)) : body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines)).concat([closeBlockLine]) : [];
 
 const substituteIfStatement = (ifStatement: IfStatement, varTable: VarTuple[]): ValuedLine[] =>
-    [analyzedLineToValuedLine(ifStatement, valueExpressionToValue(ifStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(ifStatement.consequent, varTable));
+    [analyzedLineToValuedLine(ifStatement, valueExpressionToValue(ifStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(ifStatement.consequent, varTable)).concat([elseLine]).concat(getValuedLinesOfBody(ifStatement.alternate, varTable));
 
 const substituteLoopStatement = (loopStatement: LoopStatement, varTable: VarTuple[]): ValuedLine[] =>
     isWhileStatement(loopStatement) ? substituteWhileStatement(loopStatement, varTable) :
