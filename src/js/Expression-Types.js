@@ -12,7 +12,13 @@ exports.isExpressionStatement = function (x) { return isWithType(x) ? x.type ===
 exports.isIdentifier = function (x) { return isWithType(x) ? x.type === 'Identifier' : false; };
 exports.isLiteral = function (x) { return isWithType(x) ? x.type === 'Literal' : false; };
 exports.isBinaryExpression = function (x) { return isWithType(x) ? x.type === 'BinaryExpression' : false; };
+exports.createBinaryExpression = function (operator, left, right, loc) {
+    return ({ type: 'BinaryExpression', operator: operator, left: left, right: right, loc: loc });
+};
 exports.isUnaryExpression = function (x) { return isWithType(x) ? x.type === 'UnaryExpression' : false; };
+exports.createUnaryExpression = function (operator, argument, prefix, loc) {
+    return ({ type: 'UnaryExpression', operator: operator, argument: argument, prefix: prefix, loc: loc });
+};
 exports.isComputationExpression = function (x) { return exports.isBinaryExpression(x) || exports.isUnaryExpression(x) || exports.isUpdateExpression(x); };
 exports.isValueExpression = function (x) { return exports.isLiteral(x) || exports.isIdentifier(x) || exports.isComputationExpression(x) || exports.isConditionalExpression(x) || exports.isMemberExpression(x); };
 exports.isBlockStatement = function (x) { return isWithType(x) ? x.type === 'BlockStatement' : false; };
@@ -21,8 +27,17 @@ exports.isFunctionDeclaration = function (x) { return isWithType(x) ? x.type ===
 exports.isVariableDeclaration = function (x) { return isWithType(x) ? x.type === 'VariableDeclaration' : false; };
 exports.isAssignmentExpression = function (x) { return isWithType(x) ? x.type === 'AssignmentExpression' : false; };
 exports.isUpdateExpression = function (x) { return isWithType(x) ? x.type === 'UpdateExpression' : false; };
+exports.createUpdateExpression = function (operator, argument, prefix, loc) {
+    return ({ type: 'UpdateExpression', operator: operator, argument: argument, prefix: prefix, loc: loc });
+};
 exports.isConditionalExpression = function (x) { return isWithType(x) ? x.type === 'ConditionalExpression' : false; };
+exports.createConditionalExpression = function (test, consequent, alternate, loc) {
+    return ({ type: 'ConditionalExpression', test: test, consequent: consequent, alternate: alternate, loc: loc });
+};
 exports.isMemberExpression = function (x) { return isWithType(x) ? x.type === 'MemberExpression' : false; };
+exports.createMemberExpression = function (computed, object, property, loc) {
+    return ({ type: 'MemberExpression', computed: computed, object: object, property: property, loc: loc });
+};
 exports.isReturnStatement = function (x) { return isWithType(x) ? x.type === 'ReturnStatement' : false; };
 exports.isWhileStatement = function (x) { return isWithType(x) ? x.type === 'WhileStatement' : false; };
 exports.isDoWhileStatement = function (x) { return isWithType(x) ? x.type === 'DoWhileStatement' : false; };

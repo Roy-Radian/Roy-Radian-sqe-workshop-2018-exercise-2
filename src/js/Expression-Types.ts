@@ -66,16 +66,20 @@ export interface BinaryExpression {
     loc: Location;
 }
 export const isBinaryExpression = (x: any): x is BinaryExpression => isWithType(x) ? x.type === 'BinaryExpression' : false;
+export const createBinaryExpression = (operator: string, left: ValueExpression, right: ValueExpression, loc: Location): BinaryExpression =>
+    ({type: 'BinaryExpression', operator: operator, left: left, right: right, loc: loc});
 
-export type UnaryOperator = '!' | '-' | '+';
+// type UnaryOperator = '!' | '-' | '+';
 export interface UnaryExpression {
     type: 'UnaryExpression';
-    operator: UnaryOperator;
+    operator: string;
     argument: ValueExpression;
     prefix: boolean;
     loc: Location;
 }
 export const isUnaryExpression = (x: any): x is UnaryExpression => isWithType(x) ? x.type === 'UnaryExpression' : false;
+export const createUnaryExpression = (operator: string, argument: ValueExpression, prefix: boolean, loc: Location): UnaryExpression =>
+    ({type: 'UnaryExpression', operator: operator, argument: argument, prefix: prefix, loc: loc});
 
 export type ComputationExpression = BinaryExpression | UnaryExpression | UpdateExpression;
 export const isComputationExpression = (x: object): x is ComputationExpression => isBinaryExpression(x) || isUnaryExpression(x) || isUpdateExpression(x);
@@ -135,12 +139,14 @@ export const isAssignmentExpression = (x: any): x is AssignmentExpression => isW
 
 export interface UpdateExpression {
     type: 'UpdateExpression';
-    operator: '++' | '--';
+    operator: string;
     argument: Assignable;
     prefix: boolean;
     loc: Location;
 }
 export const isUpdateExpression = (x: any): x is UpdateExpression => isWithType(x) ? x.type === 'UpdateExpression' : false;
+export const createUpdateExpression = (operator: string, argument: Assignable, prefix: boolean, loc: Location): UpdateExpression =>
+    ({type: 'UpdateExpression', operator: operator, argument: argument, prefix: prefix, loc: loc});
 
 export interface ConditionalExpression {
     type: 'ConditionalExpression';
@@ -150,6 +156,8 @@ export interface ConditionalExpression {
     loc: Location;
 }
 export const isConditionalExpression = (x: any): x is ConditionalExpression => isWithType(x) ? x.type === 'ConditionalExpression' : false;
+export const createConditionalExpression = (test: ValueExpression, consequent: ValueExpression, alternate: ValueExpression, loc: Location): ConditionalExpression =>
+    ({type: 'ConditionalExpression', test: test, consequent: consequent, alternate: alternate, loc: loc});
 
 export interface MemberExpression {
     type: 'MemberExpression';
@@ -159,6 +167,8 @@ export interface MemberExpression {
     loc: Location;
 }
 export const isMemberExpression = (x: any): x is MemberExpression => isWithType(x) ? x.type === 'MemberExpression' : false;
+export const createMemberExpression = (computed: boolean, object: ValueExpression, property: ValueExpression, loc: Location): MemberExpression =>
+    ({type: 'MemberExpression', computed: computed, object: object, property: property, loc: loc});
 
 export interface ReturnStatement {
     type: 'ReturnStatement';

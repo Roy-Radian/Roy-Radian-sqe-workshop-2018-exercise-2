@@ -37,7 +37,17 @@ import {
     isUpdateExpression,
     IfStatement,
     Body,
-    isExpression, isFunctionDeclaration, FunctionDeclaration, WhileStatement, DoWhileStatement, ForStatement
+    isExpression,
+    isFunctionDeclaration,
+    FunctionDeclaration,
+    WhileStatement,
+    DoWhileStatement,
+    ForStatement,
+    createBinaryExpression,
+    createUnaryExpression,
+    createUpdateExpression,
+    createConditionalExpression,
+    createMemberExpression
 } from "./Expression-Types";
 import {AnalyzedLine, getAllAnalyzedLines, getFirstAnalyzedLine, getValOfValExp} from "./expression-analyzer";
 import {parseCode} from "./code-analyzer";
@@ -199,6 +209,23 @@ const doWhileEndLine = (cond: string, value: Value): ValuedLine => ({
 
 const copyArr = <T>(arr: T[]): T[] => arr.slice();
 
+const replaceVarInValueExpression = (id: Identifier, valueExpression: ValueExpression, varTable: VarTuple[]): ValueExpression =>
+    isIdentifier(valueExpression) ? (id.name == valueExpression.name ? getValueExpressionOfIdentifier(valueExpression, varTable) : valueExpression):
+    isLiteral(valueExpression) ? valueExpression :
+    isComputationExpression(valueExpression) ? replaceVarsInComputationExpression(id, valueExpression, varTable) :
+    isConditionalExpression(valueExpression) ? replaceVarsInCondtionalExpression(id, valueExpression, varTable) :
+    replaceVarInMemberExpression(id, valueExpression, varTable);
+
+const replaceVarsInComputationExpression = (id: Identifier, comp: ComputationExpression, varTable: VarTuple[]): ValueExpression =>
+    isBinaryExpression(comp) ? createBinaryExpression(comp.operator, replaceVarInValueExpression(id, comp.left, varTable), replaceVarInValueExpression(id, comp.right, varTable), comp.loc) :
+    createUnaryExpression(comp.operator, replaceVarInValueExpression(id, comp.argument, varTable), comp.prefix, comp.loc);
+
+const replaceVarInMemberExpression = (id: Identifier, memberExpression: MemberExpression, varTable: VarTuple[]): ValueExpression =>
+    createMemberExpression(memberExpression.computed, replaceVarInValueExpression(id, memberExpression.object, varTable), replaceVarInValueExpression(id, memberExpression.property, varTable), memberExpression.loc);
+
+const replaceVarsInCondtionalExpression = (id: Identifier, cond: ConditionalExpression, varTable: VarTuple[]): ValueExpression =>
+    createConditionalExpression(cond.test, cond.consequent, cond.alternate, cond.loc);
+
 const substituteExpression = (exp: Expression, varTable: VarTuple[]): ValuedLine[] =>
     isAtomicExpression(exp) ? substituteAtomicExpression(exp, varTable) :
     substituteCompoundExpression(exp, varTable);
@@ -258,11 +285,13 @@ const substituteVariableDeclaration = (varDeclaration: VariableDeclaration, varT
 }
 
 const substituteAssignmentExpression = (assignmentExpression: AssignmentExpression, varTable: VarTuple[]): ValuedLine[] => { // Mutation due to changing varTable
-    addAssignmentToVarTable(assignmentExpression.left, assignmentExpression.operator, assignmentExpression.right, varTable);
     let left = assignmentExpression.left;
     if (isIdentifier(left)) {
-        if (isVarParam(left, varTable))
-            return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(assignmentExpression.right, varTable), varTable)];
+        let newValue: ValueExpression = replaceVarInValueExpression(left, assignmentExpression.right, varTable);
+        addAssignmentToVarTable(assignmentExpression.left, assignmentExpression.operator, newValue, varTable);
+        if (isVarParam(left, varTable)) {
+            return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(newValue, varTable), varTable)];
+        }
     }
     return NO_LINES;
 }

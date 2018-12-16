@@ -138,6 +138,23 @@ var doWhileEndLine = function (cond, value) { return ({
     value: value
 }); };
 var copyArr = function (arr) { return arr.slice(); };
+var replaceVarInValueExpression = function (id, valueExpression, varTable) {
+    return Expression_Types_1.isIdentifier(valueExpression) ? (id.name == valueExpression.name ? exports.getValueExpressionOfIdentifier(valueExpression, varTable) : valueExpression) :
+        Expression_Types_1.isLiteral(valueExpression) ? valueExpression :
+            Expression_Types_1.isComputationExpression(valueExpression) ? replaceVarsInComputationExpression(id, valueExpression, varTable) :
+                Expression_Types_1.isConditionalExpression(valueExpression) ? replaceVarsInCondtionalExpression(id, valueExpression, varTable) :
+                    replaceVarInMemberExpression(id, valueExpression, varTable);
+};
+var replaceVarsInComputationExpression = function (id, comp, varTable) {
+    return Expression_Types_1.isBinaryExpression(comp) ? Expression_Types_1.createBinaryExpression(comp.operator, replaceVarInValueExpression(id, comp.left, varTable), replaceVarInValueExpression(id, comp.right, varTable), comp.loc) :
+        Expression_Types_1.createUnaryExpression(comp.operator, replaceVarInValueExpression(id, comp.argument, varTable), comp.prefix, comp.loc);
+};
+var replaceVarInMemberExpression = function (id, memberExpression, varTable) {
+    return Expression_Types_1.createMemberExpression(memberExpression.computed, replaceVarInValueExpression(id, memberExpression.object, varTable), replaceVarInValueExpression(id, memberExpression.property, varTable), memberExpression.loc);
+};
+var replaceVarsInCondtionalExpression = function (id, cond, varTable) {
+    return Expression_Types_1.createConditionalExpression(cond.test, cond.consequent, cond.alternate, cond.loc);
+};
 var substituteExpression = function (exp, varTable) {
     return Expression_Types_1.isAtomicExpression(exp) ? substituteAtomicExpression(exp, varTable) :
         substituteCompoundExpression(exp, varTable);
@@ -195,11 +212,13 @@ var substituteVariableDeclaration = function (varDeclaration, varTable) {
     return NO_LINES;
 };
 var substituteAssignmentExpression = function (assignmentExpression, varTable) {
-    addAssignmentToVarTable(assignmentExpression.left, assignmentExpression.operator, assignmentExpression.right, varTable);
     var left = assignmentExpression.left;
     if (Expression_Types_1.isIdentifier(left)) {
-        if (exports.isVarParam(left, varTable))
-            return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(assignmentExpression.right, varTable), varTable)];
+        var newValue = replaceVarInValueExpression(left, assignmentExpression.right, varTable);
+        addAssignmentToVarTable(assignmentExpression.left, assignmentExpression.operator, newValue, varTable);
+        if (exports.isVarParam(left, varTable)) {
+            return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(newValue, varTable), varTable)];
+        }
     }
     return NO_LINES;
 };
