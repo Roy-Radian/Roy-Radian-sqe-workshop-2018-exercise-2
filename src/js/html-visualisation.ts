@@ -34,6 +34,7 @@ const valueTypes = ['Literal', 'Identifier', 'MemberExpression', 'ConditionalExp
 const compoundTypes = ['FunctionDeclaration', 'IfStatement'].concat(valueTypes).concat(loopTypes);
 
 const constructSubstitution = (program: any, params: string): string => {
+    ident = 0;
     return isProgram(program) ? valuedLinesIntoTable(substituteProgram(program, parseParams(params)), paramsIntoList(parseParams(params))) :
         notAProgram;
 }

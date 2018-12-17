@@ -19,7 +19,6 @@ import {
     isValueExpression,
     isAssignmentExpression,
     isVariableDeclaration,
-    isLoopStatement,
     isIfStatement,
     isAtomicExpression,
     AtomicExpression,
@@ -45,11 +44,10 @@ import {
     ForStatement,
     createBinaryExpression,
     createUnaryExpression,
-    createUpdateExpression,
     createConditionalExpression,
     createMemberExpression, isBody
 } from "./Expression-Types";
-import {AnalyzedLine, getAllAnalyzedLines, getFirstAnalyzedLine, getValOfValExp} from "./expression-analyzer";
+import {AnalyzedLine, getFirstAnalyzedLine, getValOfValExp} from "./expression-analyzer";
 import {parseCode} from "./code-analyzer";
 
 type Value = number | string | boolean;
@@ -83,7 +81,7 @@ const paramToValueTuple = (param: string): VarTuple =>
     ({name: param.trim().split('=')[0].trim(), value: parseCode(param.trim().split('=')[1].trim()).body[0].expression, isParam: true});
 
 const parseParams = (paramsTxt: string): VarTuple[] =>
-    paramsTxt.split(',').map(paramToValueTuple);
+    paramsTxt.length > 0 ? paramsTxt.split(';').map(paramToValueTuple) : [];
 
 const valueExpressionToValue = (v: ValueExpression, varTable: VarTuple[]): Value =>
     isLiteral(v) ? stringToValue(v.value) :
@@ -319,12 +317,11 @@ const getSubstituteExpFunc = (varTable: VarTuple[]) =>
 const concatValuedLines = (previous: ValuedLine[], current: ValuedLine[]) => previous.concat(current);
 
 const substituteProgram = (program: Program, varTable: VarTuple[]): ValuedLine[] =>
-    program.body.map(getSubstituteExpFunc(varTable)).reduce(concatValuedLines);
+    program.body.length > 0 ? program.body.map(getSubstituteExpFunc(varTable)).reduce(concatValuedLines) : [];
 
 
 export {parseParams, substituteProgram};
 
-// TODO: Allow an empty input vector
 // TODO: Should I support logical expressions?
 /* TODO: should I support arrays? If so I need to:
 *          * Support ArrayExpression as a value expression

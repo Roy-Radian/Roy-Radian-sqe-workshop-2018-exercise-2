@@ -33,6 +33,7 @@ var computationTypes = ['BinaryExpression', 'UnaryExpresion', 'UpdateExpression'
 var valueTypes = ['Literal', 'Identifier', 'MemberExpression', 'ConditionalExpression'].concat(computationTypes);
 var compoundTypes = ['FunctionDeclaration', 'IfStatement'].concat(valueTypes).concat(loopTypes);
 var constructSubstitution = function (program, params) {
+    ident = 0;
     return expression_analyzer_1.isProgram(program) ? valuedLinesIntoTable(code_substitutor_1.substituteProgram(program, code_substitutor_1.parseParams(params)), paramsIntoList(code_substitutor_1.parseParams(params))) :
         notAProgram;
 };

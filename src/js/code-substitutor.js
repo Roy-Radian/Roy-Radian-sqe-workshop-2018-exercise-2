@@ -24,7 +24,7 @@ var paramToValueTuple = function (param) {
     return ({ name: param.trim().split('=')[0].trim(), value: code_analyzer_1.parseCode(param.trim().split('=')[1].trim()).body[0].expression, isParam: true });
 };
 var parseParams = function (paramsTxt) {
-    return paramsTxt.split(',').map(paramToValueTuple);
+    return paramsTxt.length > 0 ? paramsTxt.split(';').map(paramToValueTuple) : [];
 };
 exports.parseParams = parseParams;
 var valueExpressionToValue = function (v, varTable) {
@@ -243,10 +243,9 @@ var getSubstituteExpFunc = function (varTable) {
 };
 var concatValuedLines = function (previous, current) { return previous.concat(current); };
 var substituteProgram = function (program, varTable) {
-    return program.body.map(getSubstituteExpFunc(varTable)).reduce(concatValuedLines);
+    return program.body.length > 0 ? program.body.map(getSubstituteExpFunc(varTable)).reduce(concatValuedLines) : [];
 };
 exports.substituteProgram = substituteProgram;
-// TODO: Allow an empty input vector
 // TODO: Should I support logical expressions?
 /* TODO: should I support arrays? If so I need to:
 *          * Support ArrayExpression as a value expression
