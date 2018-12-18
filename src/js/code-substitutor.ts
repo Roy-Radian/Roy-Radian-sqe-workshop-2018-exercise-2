@@ -52,7 +52,7 @@ import {
     ArrayExpression,
     ArrayObject,
     isArrayExpression,
-    createArrayExpression, isArrayObject
+    createArrayExpression, isArrayObject, isLogicalExpression, LogicalExpression, createLogicalExpression
 } from "./Expression-Types";
 import {AnalyzedLine, getFirstAnalyzedLine, getValOfValExp} from "./expression-analyzer";
 import {parseCode} from "./code-analyzer";
@@ -114,6 +114,7 @@ export const getValueExpressionOfIdentifier = (id: Identifier, varTable: VarTupl
 
 const getValueOfComputationExpression = (comp: ComputationExpression, varTable: VarTuple[]): Value =>
     isBinaryExpression(comp) ? getValueOfBinaryExpression(comp, varTable) :
+    isLogicalExpression(comp) ? getValueOfLogicalExpression(comp, varTable) :
     isUnaryExpression(comp) ? getValueOfUnaryExpression(comp, varTable) :
     getValueOfUpdateExpression(comp, varTable);
 
@@ -163,15 +164,22 @@ const performBooleanEqBinaryOp = (left: Value, right: Value, op: string): Value 
     op === '==' ? left == right :
     left === right;
 
-/*const performLogicalExpression = (left: boolean, right: boolean, op: string): Value =>
-    op[0] === '&' ? left && right :
-    left || right;*/
-
 const performNumericBinaryOp = (left: number, right: number, op: string) : Value =>
     op === '-' ? left - right :
     op === '*' ? left * right :
     op === '/' ? left / right :
     left ** right;
+
+const getValueOfLogicalExpression = (logicalExpression: LogicalExpression, varTable: VarTuple[]): Value =>
+    computeLogicalOperation(valueExpressionToValue(logicalExpression.left, varTable), valueExpressionToValue(logicalExpression.right, varTable), logicalExpression.operator);
+
+const computeLogicalOperation = (left: Value, right: Value, op: string): Value =>
+    isBoolean(left) && isBoolean(right) ? performLogicalOperation(left, right, op) :
+    "error: " + op + " is undefined on non-booleans";
+
+const performLogicalOperation = (left: boolean, right: boolean, op: string): Value =>
+    op[0] === '&' ? left && right :
+    left || right;
 
 const getValueOfUnaryExpression = (unaryExpression: UnaryExpression, varTable: VarTuple[]): Value =>
     performUnaryOp(valueExpressionToValue(unaryExpression.argument, varTable), unaryExpression.operator);
@@ -243,22 +251,27 @@ const replaceVarInValueExpression = (id: Identifier, valueExpression: ValueExpre
     isIdentifier(valueExpression) ? replaceVarInIdentifier(id, valueExpression, varTable) :
     isLiteral(valueExpression) ? valueExpression :
     isComputationExpression(valueExpression) ? replaceVarsInComputationExpression(id, valueExpression, varTable) :
-    isConditionalExpression(valueExpression) ? replaceVarsInCondtionalExpression(id, valueExpression, varTable) :
+    isConditionalExpression(valueExpression) ? replaceVarsInConditionalExpression(id, valueExpression, varTable) :
     replaceVarInMemberExpression(id, valueExpression, varTable);
 
 const replaceVarInIdentifier = (id: Identifier, replaceIn: Identifier, varTable: VarTuple[]): ValueExpression =>
     id.name == replaceIn.name ? getValueExpressionOfIdentifier(replaceIn, varTable) : replaceIn;
 
 const replaceVarsInComputationExpression = (id: Identifier, comp: ComputationExpression, varTable: VarTuple[]): ValueExpression =>
-    isBinaryExpression(comp) ? createBinaryExpression(comp.operator, replaceVarInValueExpression(id, comp.left, varTable), replaceVarInValueExpression(id, comp.right, varTable), comp.loc) :
+    isBinaryExpression(comp) ? createBinaryExpression(comp.operator, replaceVarInValueExpression(id, comp.left, varTable),
+        replaceVarInValueExpression(id, comp.right, varTable), comp.loc) :
+    isLogicalExpression(comp) ? createLogicalExpression(comp.operator, replaceVarInValueExpression(id, comp.left, varTable),
+        replaceVarInValueExpression(id, comp.right, varTable), comp.loc) :
     createUnaryExpression(comp.operator, replaceVarInValueExpression(id, comp.argument, varTable), comp.prefix, comp.loc);
 
 const replaceVarInMemberExpression = (id: Identifier, memberExpression: MemberExpression, varTable: VarTuple[]): ValueExpression =>
-    createMemberExpression(memberExpression.computed, replaceVarInMemberObject(id, memberExpression.object, varTable), replaceVarInValueExpression(id, memberExpression.property, varTable), memberExpression.loc);
+    createMemberExpression(memberExpression.computed, replaceVarInMemberObject(id, memberExpression.object, varTable),
+        replaceVarInValueExpression(id, memberExpression.property, varTable), memberExpression.loc);
 
 const replaceVarInMemberObject = (id: Identifier, obj: ArrayObject, varTable: VarTuple[]): ArrayObject =>
     isArrayExpression(obj) ? (obj.elements.length > 0 ?
-        createArrayExpression(obj.elements.map((v: ValueExpression): ValueExpression => replaceVarInValueExpression(id, v, varTable)), obj.loc) :
+        createArrayExpression(obj.elements.map((v: ValueExpression): ValueExpression =>
+            replaceVarInValueExpression(id, v, varTable)), obj.loc) :
         createArrayExpression([], obj.loc)):
     valueExpressionToArrObject(replaceVarInIdentifier(id, obj, varTable));
 
@@ -266,8 +279,9 @@ const valueExpressionToArrObject = (valueExpression: ValueExpression): ArrayObje
     isArrayObject(valueExpression) ? valueExpression :
     createArrayExpression([], valueExpression.loc); // Error: not an array
 
-const replaceVarsInCondtionalExpression = (id: Identifier, cond: ConditionalExpression, varTable: VarTuple[]): ValueExpression =>
-    createConditionalExpression(cond.test, cond.consequent, cond.alternate, cond.loc);
+const replaceVarsInConditionalExpression = (id: Identifier, cond: ConditionalExpression, varTable: VarTuple[]): ValueExpression =>
+    createConditionalExpression(replaceVarInValueExpression(id, cond.test, varTable),
+        replaceVarInValueExpression(id, cond.consequent, varTable), replaceVarInValueExpression(id, cond.alternate, varTable), cond.loc);
 
 const substituteExpression = (exp: Expression, varTable: VarTuple[]): ValuedLine[] =>
     isAtomicExpression(exp) ? substituteAtomicExpression(exp, varTable) :

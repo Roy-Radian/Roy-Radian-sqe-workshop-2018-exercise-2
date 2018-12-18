@@ -51,8 +51,9 @@ exports.getValueExpressionOfIdentifier = function (id, varTable) {
 };
 var getValueOfComputationExpression = function (comp, varTable) {
     return Expression_Types_1.isBinaryExpression(comp) ? getValueOfBinaryExpression(comp, varTable) :
-        Expression_Types_1.isUnaryExpression(comp) ? getValueOfUnaryExpression(comp, varTable) :
-            getValueOfUpdateExpression(comp, varTable);
+        Expression_Types_1.isLogicalExpression(comp) ? getValueOfLogicalExpression(comp, varTable) :
+            Expression_Types_1.isUnaryExpression(comp) ? getValueOfUnaryExpression(comp, varTable) :
+                getValueOfUpdateExpression(comp, varTable);
 };
 var getValueOfConditionalExpression = function (cond, varTable) {
     return valueExpressionToValue(cond.test, varTable) ? valueExpressionToValue(cond.consequent, varTable) :
@@ -100,14 +101,22 @@ var performBooleanEqBinaryOp = function (left, right, op) {
                     op === '==' ? left == right :
                         left === right;
 };
-/*const performLogicalExpression = (left: boolean, right: boolean, op: string): Value =>
-    op[0] === '&' ? left && right :
-    left || right;*/
 var performNumericBinaryOp = function (left, right, op) {
     return op === '-' ? left - right :
         op === '*' ? left * right :
             op === '/' ? left / right :
                 Math.pow(left, right);
+};
+var getValueOfLogicalExpression = function (logicalExpression, varTable) {
+    return computeLogicalOperation(valueExpressionToValue(logicalExpression.left, varTable), valueExpressionToValue(logicalExpression.right, varTable), logicalExpression.operator);
+};
+var computeLogicalOperation = function (left, right, op) {
+    return isBoolean(left) && isBoolean(right) ? performLogicalOperation(left, right, op) :
+        "error: " + op + " is undefined on non-booleans";
+};
+var performLogicalOperation = function (left, right, op) {
+    return op[0] === '&' ? left && right :
+        left || right;
 };
 var getValueOfUnaryExpression = function (unaryExpression, varTable) {
     return performUnaryOp(valueExpressionToValue(unaryExpression.argument, varTable), unaryExpression.operator);
@@ -166,7 +175,7 @@ var replaceVarInValueExpression = function (id, valueExpression, varTable) {
     return Expression_Types_1.isIdentifier(valueExpression) ? replaceVarInIdentifier(id, valueExpression, varTable) :
         Expression_Types_1.isLiteral(valueExpression) ? valueExpression :
             Expression_Types_1.isComputationExpression(valueExpression) ? replaceVarsInComputationExpression(id, valueExpression, varTable) :
-                Expression_Types_1.isConditionalExpression(valueExpression) ? replaceVarsInCondtionalExpression(id, valueExpression, varTable) :
+                Expression_Types_1.isConditionalExpression(valueExpression) ? replaceVarsInConditionalExpression(id, valueExpression, varTable) :
                     replaceVarInMemberExpression(id, valueExpression, varTable);
 };
 var replaceVarInIdentifier = function (id, replaceIn, varTable) {
@@ -174,14 +183,17 @@ var replaceVarInIdentifier = function (id, replaceIn, varTable) {
 };
 var replaceVarsInComputationExpression = function (id, comp, varTable) {
     return Expression_Types_1.isBinaryExpression(comp) ? Expression_Types_1.createBinaryExpression(comp.operator, replaceVarInValueExpression(id, comp.left, varTable), replaceVarInValueExpression(id, comp.right, varTable), comp.loc) :
-        Expression_Types_1.createUnaryExpression(comp.operator, replaceVarInValueExpression(id, comp.argument, varTable), comp.prefix, comp.loc);
+        Expression_Types_1.isLogicalExpression(comp) ? Expression_Types_1.createLogicalExpression(comp.operator, replaceVarInValueExpression(id, comp.left, varTable), replaceVarInValueExpression(id, comp.right, varTable), comp.loc) :
+            Expression_Types_1.createUnaryExpression(comp.operator, replaceVarInValueExpression(id, comp.argument, varTable), comp.prefix, comp.loc);
 };
 var replaceVarInMemberExpression = function (id, memberExpression, varTable) {
     return Expression_Types_1.createMemberExpression(memberExpression.computed, replaceVarInMemberObject(id, memberExpression.object, varTable), replaceVarInValueExpression(id, memberExpression.property, varTable), memberExpression.loc);
 };
 var replaceVarInMemberObject = function (id, obj, varTable) {
     return Expression_Types_1.isArrayExpression(obj) ? (obj.elements.length > 0 ?
-        Expression_Types_1.createArrayExpression(obj.elements.map(function (v) { return replaceVarInValueExpression(id, v, varTable); }), obj.loc) :
+        Expression_Types_1.createArrayExpression(obj.elements.map(function (v) {
+            return replaceVarInValueExpression(id, v, varTable);
+        }), obj.loc) :
         Expression_Types_1.createArrayExpression([], obj.loc)) :
         valueExpressionToArrObject(replaceVarInIdentifier(id, obj, varTable));
 };
@@ -189,8 +201,8 @@ var valueExpressionToArrObject = function (valueExpression) {
     return Expression_Types_1.isArrayObject(valueExpression) ? valueExpression :
         Expression_Types_1.createArrayExpression([], valueExpression.loc);
 }; // Error: not an array
-var replaceVarsInCondtionalExpression = function (id, cond, varTable) {
-    return Expression_Types_1.createConditionalExpression(cond.test, cond.consequent, cond.alternate, cond.loc);
+var replaceVarsInConditionalExpression = function (id, cond, varTable) {
+    return Expression_Types_1.createConditionalExpression(replaceVarInValueExpression(id, cond.test, varTable), replaceVarInValueExpression(id, cond.consequent, varTable), replaceVarInValueExpression(id, cond.alternate, varTable), cond.loc);
 };
 var substituteExpression = function (exp, varTable) {
     return Expression_Types_1.isAtomicExpression(exp) ? substituteAtomicExpression(exp, varTable) :

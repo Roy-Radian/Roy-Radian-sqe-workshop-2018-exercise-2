@@ -35,7 +35,7 @@ import {
     VariableDeclaration,
     VariableDeclarator,
     WhileStatement,
-    Body, isAtomicLiteral, ArrayExpression
+    Body, isAtomicLiteral, ArrayExpression, isLogicalExpression, LogicalExpression
 } from "./Expression-Types";
 import {getValueExpressionOfIdentifier, isVarParam, VarTuple} from "./code-substitutor";
 
@@ -99,6 +99,7 @@ const arrayToString = (arr: ArrayExpression, varTable: VarTuple[]): string =>
 
 const getValOfComputationExpression = (c: ComputationExpression, varTable: VarTuple[]): string =>
     isBinaryExpression(c) ? '(' + getValOfValExp(c.left, varTable) + ' ' + c.operator + ' ' + getValOfValExp(c.right, varTable) + ')' :
+    isLogicalExpression(c) ? '(' + getValOfValExp(c.left, varTable) + ' ' + c.operator + ' ' + getValOfValExp(c.right, varTable) + ')' :
     isUnaryExpression(c) ? c.operator + getValOfValExp(c.argument, varTable) : // If there were non-prefix unary expressions: (v.prefix ? v.operator + getValOfValExp(v.argument) : getValOfValExp(v.argument) + v.operator) :
     (c.prefix ? c.operator + getValOfValExp(c.argument, varTable) : getValOfValExp(c.argument, varTable) + c.operator);
 
@@ -118,6 +119,7 @@ const valueExpressionToAnalyzedLines = (val: ValueExpression, varTable: VarTuple
 
 const computationExpressionToAnalyzedLines = (comp: ComputationExpression, varTable: VarTuple[]): AnalyzedLine[] =>
     isUpdateExpression(comp) ? updateExpressionToAnalyzedLines(comp, varTable) :
+    isLogicalExpression(comp) ? logicalExpressionToAnalyzedLines(comp, varTable) :
     isBinaryExpression(comp) ? binaryExpressionToAnalyzedLines(comp, varTable) :
     unaryExpressionToAnalyzedLines(comp, varTable);
 
@@ -129,6 +131,9 @@ const identifierToAnalyzedLines = (i: Identifier, varTable: VarTuple[]): Analyze
 
 const binaryExpressionToAnalyzedLines = (b: BinaryExpression, varTable: VarTuple[]): AnalyzedLine[] =>
     [{line: b.loc.start.line, type: b.type, name: EMPTY, condition: EMPTY, value: getValOfValExp(b, varTable)}];
+
+const logicalExpressionToAnalyzedLines = (l: LogicalExpression, varTable: VarTuple[]): AnalyzedLine[] =>
+    [{line: l.loc.start.line, type: l.type, name: EMPTY, condition: EMPTY, value: getValOfValExp(l, varTable)}];
 
 const unaryExpressionToAnalyzedLines = (u: UnaryExpression, varTable: VarTuple[]): AnalyzedLine[] =>
     [{line: u.loc.start.line, type: u.type, name: EMPTY, condition: EMPTY, value: getValOfValExp(u, varTable)}];

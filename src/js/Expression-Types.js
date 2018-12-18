@@ -3,10 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var isWithType = function (x) { return x != null && x.hasOwnProperty('type'); };
 exports.isProgram = function (x) { return isWithType(x) ? x.type == 'Program' : false; };
 exports.isLoopStatement = function (x) { return exports.isWhileStatement(x) || exports.isDoWhileStatement(x) || exports.isForStatement(x); };
-exports.isAtomicExpression = function (x) { return exports.isVariableDeclaration(x) || exports.isAssignmentExpression(x) || exports.isReturnStatement(x) ||
-    exports.isBreakStatement(x); };
-exports.isCompoundExpression = function (x) { return exports.isExpressionStatement(x) || exports.isFunctionDeclaration(x) || exports.isValueExpression(x) ||
-    exports.isLoopStatement(x) || exports.isIfStatement(x); };
+exports.isAtomicExpression = function (x) {
+    return exports.isVariableDeclaration(x) || exports.isAssignmentExpression(x) || exports.isReturnStatement(x) || exports.isBreakStatement(x);
+};
+exports.isCompoundExpression = function (x) {
+    return exports.isExpressionStatement(x) || exports.isFunctionDeclaration(x) || exports.isValueExpression(x) || exports.isLoopStatement(x) || exports.isIfStatement(x);
+};
 exports.isExpression = function (x) { return exports.isAtomicExpression(x) || exports.isCompoundExpression(x); };
 exports.isExpressionStatement = function (x) { return isWithType(x) ? x.type === 'ExpressionStatement' : false; };
 exports.isIdentifier = function (x) { return isWithType(x) ? x.type === 'Identifier' : false; };
@@ -20,16 +22,21 @@ exports.isUnaryExpression = function (x) { return isWithType(x) ? x.type === 'Un
 exports.createUnaryExpression = function (operator, argument, prefix, loc) {
     return ({ type: 'UnaryExpression', operator: operator, argument: argument, prefix: prefix, loc: loc });
 };
-exports.isComputationExpression = function (x) { return exports.isBinaryExpression(x) || exports.isUnaryExpression(x) || exports.isUpdateExpression(x); };
-exports.isValueExpression = function (x) { return exports.isLiteral(x) || exports.isIdentifier(x) || exports.isComputationExpression(x) || exports.isConditionalExpression(x) || exports.isMemberExpression(x); };
+exports.isComputationExpression = function (x) {
+    return exports.isBinaryExpression(x) || exports.isLogicalExpression(x) || exports.isUnaryExpression(x) || exports.isUpdateExpression(x);
+};
+exports.isValueExpression = function (x) {
+    return exports.isLiteral(x) || exports.isIdentifier(x) || exports.isComputationExpression(x) || exports.isConditionalExpression(x) || exports.isMemberExpression(x);
+};
 exports.isBlockStatement = function (x) { return isWithType(x) ? x.type === 'BlockStatement' : false; };
 exports.isBody = function (x) { return exports.isBlockStatement(x) || exports.isExpression(x); };
 exports.isFunctionDeclaration = function (x) { return isWithType(x) ? x.type === 'FunctionDeclaration' : false; };
 exports.isVariableDeclaration = function (x) { return isWithType(x) ? x.type === 'VariableDeclaration' : false; };
 exports.isAssignmentExpression = function (x) { return isWithType(x) ? x.type === 'AssignmentExpression' : false; };
 exports.isUpdateExpression = function (x) { return isWithType(x) ? x.type === 'UpdateExpression' : false; };
-exports.createUpdateExpression = function (operator, argument, prefix, loc) {
-    return ({ type: 'UpdateExpression', operator: operator, argument: argument, prefix: prefix, loc: loc });
+exports.isLogicalExpression = function (x) { return isWithType(x) ? x.type === 'LogicalExpression' : false; };
+exports.createLogicalExpression = function (operator, left, right, loc) {
+    return ({ type: 'LogicalExpression', operator: operator, left: left, right: right, loc: loc });
 };
 exports.isConditionalExpression = function (x) { return isWithType(x) ? x.type === 'ConditionalExpression' : false; };
 exports.createConditionalExpression = function (test, consequent, alternate, loc) {

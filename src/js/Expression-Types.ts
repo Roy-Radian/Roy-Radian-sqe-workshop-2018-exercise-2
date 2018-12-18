@@ -25,12 +25,12 @@ export type LoopStatement = WhileStatement | DoWhileStatement | ForStatement;
 export const isLoopStatement = (x: object): x is LoopStatement => isWhileStatement(x) || isDoWhileStatement(x) || isForStatement(x);
 
 export type AtomicExpression = VariableDeclaration | AssignmentExpression | ReturnStatement | BreakStatement;
-export const isAtomicExpression = (x: object): x is AtomicExpression => isVariableDeclaration(x) || isAssignmentExpression(x) || isReturnStatement(x) ||
-    isBreakStatement(x);
+export const isAtomicExpression = (x: object): x is AtomicExpression =>
+    isVariableDeclaration(x) || isAssignmentExpression(x) || isReturnStatement(x) || isBreakStatement(x);
 
 export type CompoundExpression = ExpressionStatement | FunctionDeclaration | ValueExpression | LoopStatement | IfStatement;
-export const isCompoundExpression = (x: object): x is CompoundExpression => isExpressionStatement(x) || isFunctionDeclaration(x) || isValueExpression(x) ||
-    isLoopStatement(x) || isIfStatement(x);
+export const isCompoundExpression = (x: object): x is CompoundExpression =>
+    isExpressionStatement(x) || isFunctionDeclaration(x) || isValueExpression(x) || isLoopStatement(x) || isIfStatement(x);
 
 export type Expression = AtomicExpression | CompoundExpression;
 export const isExpression = (x: object): x is Expression => isAtomicExpression(x) || isCompoundExpression(x);
@@ -84,11 +84,13 @@ export const isUnaryExpression = (x: any): x is UnaryExpression => isWithType(x)
 export const createUnaryExpression = (operator: string, argument: ValueExpression, prefix: boolean, loc: Location): UnaryExpression =>
     ({type: 'UnaryExpression', operator: operator, argument: argument, prefix: prefix, loc: loc});
 
-export type ComputationExpression = BinaryExpression | UnaryExpression | UpdateExpression;
-export const isComputationExpression = (x: object): x is ComputationExpression => isBinaryExpression(x) || isUnaryExpression(x) || isUpdateExpression(x);
+export type ComputationExpression = BinaryExpression | LogicalExpression | UnaryExpression | UpdateExpression;
+export const isComputationExpression = (x: object): x is ComputationExpression =>
+    isBinaryExpression(x) || isLogicalExpression(x) || isUnaryExpression(x) || isUpdateExpression(x);
 
 export type ValueExpression = Literal | Identifier | ComputationExpression | ConditionalExpression | MemberExpression;
-export const isValueExpression = (x: any): x is ValueExpression => isLiteral(x) || isIdentifier(x) || isComputationExpression(x) || isConditionalExpression(x) || isMemberExpression(x);
+export const isValueExpression = (x: any): x is ValueExpression =>
+    isLiteral(x) || isIdentifier(x) || isComputationExpression(x) || isConditionalExpression(x) || isMemberExpression(x);
 
 export interface BlockStatement {
     type: 'BlockStatement';
@@ -148,8 +150,17 @@ export interface UpdateExpression {
     loc: Location;
 }
 export const isUpdateExpression = (x: any): x is UpdateExpression => isWithType(x) ? x.type === 'UpdateExpression' : false;
-export const createUpdateExpression = (operator: string, argument: Assignable, prefix: boolean, loc: Location): UpdateExpression =>
-    ({type: 'UpdateExpression', operator: operator, argument: argument, prefix: prefix, loc: loc});
+
+export interface LogicalExpression {
+    type: 'LogicalExpression';
+    operator: string;
+    left: ValueExpression;
+    right: ValueExpression;
+    loc: Location;
+}
+export const isLogicalExpression = (x: any): x is LogicalExpression => isWithType(x) ? x.type === 'LogicalExpression' : false;
+export const createLogicalExpression = (operator: string, left: ValueExpression, right: ValueExpression, loc: Location): LogicalExpression =>
+    ({type: 'LogicalExpression', operator: operator, left: left, right: right, loc: loc});
 
 export interface ConditionalExpression {
     type: 'ConditionalExpression';

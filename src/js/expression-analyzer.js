@@ -60,8 +60,9 @@ var arrayToString = function (arr, varTable) {
 };
 var getValOfComputationExpression = function (c, varTable) {
     return Expression_Types_1.isBinaryExpression(c) ? '(' + exports.getValOfValExp(c.left, varTable) + ' ' + c.operator + ' ' + exports.getValOfValExp(c.right, varTable) + ')' :
-        Expression_Types_1.isUnaryExpression(c) ? c.operator + exports.getValOfValExp(c.argument, varTable) : // If there were non-prefix unary expressions: (v.prefix ? v.operator + getValOfValExp(v.argument) : getValOfValExp(v.argument) + v.operator) :
-            (c.prefix ? c.operator + exports.getValOfValExp(c.argument, varTable) : exports.getValOfValExp(c.argument, varTable) + c.operator);
+        Expression_Types_1.isLogicalExpression(c) ? '(' + exports.getValOfValExp(c.left, varTable) + ' ' + c.operator + ' ' + exports.getValOfValExp(c.right, varTable) + ')' :
+            Expression_Types_1.isUnaryExpression(c) ? c.operator + exports.getValOfValExp(c.argument, varTable) : // If there were non-prefix unary expressions: (v.prefix ? v.operator + getValOfValExp(v.argument) : getValOfValExp(v.argument) + v.operator) :
+                (c.prefix ? c.operator + exports.getValOfValExp(c.argument, varTable) : exports.getValOfValExp(c.argument, varTable) + c.operator);
 };
 var getValOfConditionalExpression = function (cond, varTable) {
     return "(" + exports.getValOfValExp(cond.test, varTable) + " ? " + exports.getValOfValExp(cond.consequent, varTable) + " : " + exports.getValOfValExp(cond.alternate, varTable) + ")";
@@ -79,8 +80,9 @@ var valueExpressionToAnalyzedLines = function (val, varTable) {
 };
 var computationExpressionToAnalyzedLines = function (comp, varTable) {
     return Expression_Types_1.isUpdateExpression(comp) ? updateExpressionToAnalyzedLines(comp, varTable) :
-        Expression_Types_1.isBinaryExpression(comp) ? binaryExpressionToAnalyzedLines(comp, varTable) :
-            unaryExpressionToAnalyzedLines(comp, varTable);
+        Expression_Types_1.isLogicalExpression(comp) ? logicalExpressionToAnalyzedLines(comp, varTable) :
+            Expression_Types_1.isBinaryExpression(comp) ? binaryExpressionToAnalyzedLines(comp, varTable) :
+                unaryExpressionToAnalyzedLines(comp, varTable);
 };
 var literalExpressionToAnalyzedLines = function (l, varTable) {
     return [{ line: l.loc.start.line, type: l.type, name: EMPTY, condition: EMPTY, value: getValOfLiteral(l, varTable) }];
@@ -90,6 +92,9 @@ var identifierToAnalyzedLines = function (i, varTable) {
 };
 var binaryExpressionToAnalyzedLines = function (b, varTable) {
     return [{ line: b.loc.start.line, type: b.type, name: EMPTY, condition: EMPTY, value: exports.getValOfValExp(b, varTable) }];
+};
+var logicalExpressionToAnalyzedLines = function (l, varTable) {
+    return [{ line: l.loc.start.line, type: l.type, name: EMPTY, condition: EMPTY, value: exports.getValOfValExp(l, varTable) }];
 };
 var unaryExpressionToAnalyzedLines = function (u, varTable) {
     return [{ line: u.loc.start.line, type: u.type, name: EMPTY, condition: EMPTY, value: exports.getValOfValExp(u, varTable) }];
