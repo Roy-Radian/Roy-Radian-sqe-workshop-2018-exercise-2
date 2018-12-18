@@ -135,7 +135,6 @@ export interface VariableDeclaration {
     loc: Location;
 }
 export const isVariableDeclaration = (x: any): x is VariableDeclaration => isWithType(x) ? x.type === 'VariableDeclaration' : false;
-
 export type Assignable = Identifier | MemberExpression;
 
 //type AssignmentOperator = '=' | '+=' | '-=' | '*=' | '/=';

@@ -57,7 +57,7 @@ import {
     isLogicalExpression,
     LogicalExpression,
     createLogicalExpression,
-    isBlockStatement, createAssignmentExpression, isMemberExpression, getBlankLocation
+    isBlockStatement, createAssignmentExpression, isMemberExpression, getBlankLocation, ExpressionStatement
 } from "./Expression-Types";
 import {AnalyzedLine, getFirstAnalyzedLine, getValOfValExp} from "./expression-analyzer";
 import {parseCode} from "./code-analyzer";
@@ -77,7 +77,7 @@ export interface VarTuple {
 }
 
 export const isVarParam = (id: Identifier, varTable: VarTuple[]): boolean =>
-    varTable.length == 0 ? false :
+    //varTable.length == 0 ? false :
     varTable[0].name == id.name ? varTable[0].isParam :
     isVarParam(id, varTable.slice(1));
 
@@ -100,10 +100,10 @@ const getValueOfLiteral = (literal: Literal, varTable: VarTuple[]): Value =>
 
 const getValueOfArrayExpression = (arr: ArrayExpression, varTable: VarTuple[]): Value =>
     arr.elements.length > 0 ? arr.elements.map((v: ValueExpression): Value => valueExpressionToValue(v, varTable)) :
-    [];
+        [];
 
 export const getValueExpressionOfIdentifier = (id: Identifier, varTable: VarTuple[]): ValueExpression =>
-    varTable.length == 0 ? null :
+    //varTable.length == 0 ? null :
     varTable[0].name == id.name ? varTable[0].value :
     getValueExpressionOfIdentifier(id, varTable.slice(1));
 
@@ -223,9 +223,9 @@ const updateVarTable = (varTable: VarTuple[], id: Identifier, newValue: ValueExp
     varTable.push({name: id.name, value: newValue, isParam: false});
 }
 
-const performUpdateOp = (value: number, op: string): Value =>
+/*const performUpdateOp = (value: number, op: string): Value =>
     op === '++' ? value + 1 :
-    value - 1;
+    value - 1;*/
 
 
 export interface ValuedLine {
@@ -305,15 +305,22 @@ const substituteAtomicExpression = (exp: AtomicExpression, varTable: VarTuple[])
 const substituteCompoundExpression = (exp: CompoundExpression, varTable: VarTuple[]): ValuedLine[] =>
     isFunctionDeclaration(exp) ? substituteFunctionDeclaration(exp, varTable) :
     isValueExpression(exp) ? substituteValueExpression(exp, varTable) :
-    isExpressionStatement(exp) ? substituteExpression(exp.expression, varTable) :
+    isExpressionStatement(exp) ? substituteExpressionStatement(exp, varTable).concat(substituteExpression(exp.expression, varTable)) :
     isIfStatement(exp) ? substituteIfStatement(exp, varTable) :
     substituteLoopStatement(exp, varTable);
 
 const substituteFunctionDeclaration = (func: FunctionDeclaration, varTable: VarTuple[]): ValuedLine[] =>
     [analyzedLineToValuedLine(func, 0, varTable)].concat(getValuedLinesOfBody(func.body, varTable));
 
-const substituteValueExpression = (exp: ValueExpression, varTable: VarTuple[]): ValuedLine[] =>
-    NO_LINES; //isUpdateExpression(exp) ? substituteUpdateExpression(exp, varTable) : NO_LINES;
+const substituteValueExpression = (exp: ValueExpression, varTable: VarTuple[]): ValuedLine[] =>  {
+    [analyzedLineToValuedLine(exp, 0, varTable)];
+    return NO_LINES;
+}
+
+const substituteExpressionStatement = (exp: ExpressionStatement, varTable: VarTuple[]): ValuedLine[] => {
+    [analyzedLineToValuedLine(exp, 0, varTable)];
+    return NO_LINES;
+}
 
 /*const substituteUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): ValuedLine[] => { // Mutation due to chancing varTable
     let arg = updateExpression.argument;
@@ -330,13 +337,11 @@ const substituteValueExpression = (exp: ValueExpression, varTable: VarTuple[]): 
     return NO_LINES;
 }*/
 
-const getValuedLinesOfBody = (body: Body | null, varTable: VarTuple[]): ValuedLine[] =>
-    isBody(body) ?
-        (isExpression(body) ? substituteExpression(body, copyArr(varTable)) :
-        (body.body.length > 0 ?
-            body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines) :
-            [])).concat([closeBlockLine]) :
-    [];
+const getValuedLinesOfBody = (body: Body, varTable: VarTuple[]): ValuedLine[] =>
+    (isExpression(body) ? substituteExpression(body, copyArr(varTable)) :
+    (body.body.length > 0 ?
+        body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines) :
+        [])).concat([closeBlockLine]);
 
 const substituteIfStatement = (ifStatement: IfStatement, varTable: VarTuple[]): ValuedLine[] =>
     ifStatement.alternate != null ? [analyzedLineToValuedLine(ifStatement, valueExpressionToValue(ifStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(ifStatement.consequent, varTable))
@@ -357,8 +362,11 @@ const substituteDoWhileStatement = (doWhileStatement: DoWhileStatement, varTable
 const getDoWhileEndLine = (cond: string, value: Value): ValuedLine[] =>
     [doWhileEndLine(cond, value)];
 
-const substituteForStatement = (forStatement: ForStatement, varTable: VarTuple[]): ValuedLine[] =>
-    [analyzedLineToValuedLine(forStatement, valueExpressionToValue(forStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(forStatement.body, varTable));
+const substituteForStatement = (forStatement: ForStatement, varTable: VarTuple[]): ValuedLine[] => {
+    if (isVariableDeclaration(forStatement.init))
+        substituteVariableDeclaration(forStatement.init, varTable); // Add declaration to var table
+    return [analyzedLineToValuedLine(forStatement, valueExpressionToValue(forStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(forStatement.body, varTable));
+}
 
 const substituteVariableDeclaration = (varDeclaration: VariableDeclaration, varTable: VarTuple[]): ValuedLine[] => { // Mutations due to changing varTable
     for (let i = 0; i < varDeclaration.declarations.length; i++) {

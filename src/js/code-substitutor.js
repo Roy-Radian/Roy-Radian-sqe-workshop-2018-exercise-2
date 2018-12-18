@@ -9,9 +9,9 @@ var isString = function (x) { return (typeof x) === "string"; };
 var isBoolean = function (x) { return (typeof x) === "boolean"; };
 var isArray = function (x) { return x instanceof Array; };
 exports.isVarParam = function (id, varTable) {
-    return varTable.length == 0 ? false :
-        varTable[0].name == id.name ? varTable[0].isParam :
-            exports.isVarParam(id, varTable.slice(1));
+    //varTable.length == 0 ? false :
+    return varTable[0].name == id.name ? varTable[0].isParam :
+        exports.isVarParam(id, varTable.slice(1));
 };
 var paramToValueTuple = function (param) {
     return ({ name: param.trim().split('=')[0].trim(), value: code_analyzer_1.parseCode(param.trim().split('=')[1].trim()).body[0].expression, isParam: true });
@@ -36,9 +36,9 @@ var getValueOfArrayExpression = function (arr, varTable) {
         [];
 };
 exports.getValueExpressionOfIdentifier = function (id, varTable) {
-    return varTable.length == 0 ? null :
-        varTable[0].name == id.name ? varTable[0].value :
-            exports.getValueExpressionOfIdentifier(id, varTable.slice(1));
+    //varTable.length == 0 ? null :
+    return varTable[0].name == id.name ? varTable[0].value :
+        exports.getValueExpressionOfIdentifier(id, varTable.slice(1));
 };
 var getValueOfComputationExpression = function (comp, varTable) {
     return Expression_Types_1.isBinaryExpression(comp) ? getValueOfBinaryExpression(comp, varTable) :
@@ -153,10 +153,6 @@ var updateVarTable = function (varTable, id, newValue) {
     }
     varTable.push({ name: id.name, value: newValue, isParam: false });
 };
-var performUpdateOp = function (value, op) {
-    return op === '++' ? value + 1 :
-        value - 1;
-};
 var analyzedLineToValuedLine = function (expression, value, varTable) {
     return ({ analyzedLine: expression_analyzer_1.getFirstAnalyzedLine(expression, varTable), value: value });
 };
@@ -221,7 +217,7 @@ var substituteAtomicExpression = function (exp, varTable) {
 var substituteCompoundExpression = function (exp, varTable) {
     return Expression_Types_1.isFunctionDeclaration(exp) ? substituteFunctionDeclaration(exp, varTable) :
         Expression_Types_1.isValueExpression(exp) ? substituteValueExpression(exp, varTable) :
-            Expression_Types_1.isExpressionStatement(exp) ? substituteExpression(exp.expression, varTable) :
+            Expression_Types_1.isExpressionStatement(exp) ? substituteExpressionStatement(exp, varTable).concat(substituteExpression(exp.expression, varTable)) :
                 Expression_Types_1.isIfStatement(exp) ? substituteIfStatement(exp, varTable) :
                     substituteLoopStatement(exp, varTable);
 };
@@ -229,8 +225,13 @@ var substituteFunctionDeclaration = function (func, varTable) {
     return [analyzedLineToValuedLine(func, 0, varTable)].concat(getValuedLinesOfBody(func.body, varTable));
 };
 var substituteValueExpression = function (exp, varTable) {
+    [analyzedLineToValuedLine(exp, 0, varTable)];
     return NO_LINES;
-}; //isUpdateExpression(exp) ? substituteUpdateExpression(exp, varTable) : NO_LINES;
+};
+var substituteExpressionStatement = function (exp, varTable) {
+    [analyzedLineToValuedLine(exp, 0, varTable)];
+    return NO_LINES;
+};
 /*const substituteUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): ValuedLine[] => { // Mutation due to chancing varTable
     let arg = updateExpression.argument;
     let ret = [analyzedLineToValuedLine(updateExpression, 0, varTable)];
@@ -246,12 +247,10 @@ var substituteValueExpression = function (exp, varTable) {
     return NO_LINES;
 }*/
 var getValuedLinesOfBody = function (body, varTable) {
-    return Expression_Types_1.isBody(body) ?
-        (Expression_Types_1.isExpression(body) ? substituteExpression(body, copyArr(varTable)) :
-            (body.body.length > 0 ?
-                body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines) :
-                [])).concat([closeBlockLine]) :
-        [];
+    return (Expression_Types_1.isExpression(body) ? substituteExpression(body, copyArr(varTable)) :
+        (body.body.length > 0 ?
+            body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines) :
+            [])).concat([closeBlockLine]);
 };
 var substituteIfStatement = function (ifStatement, varTable) {
     return ifStatement.alternate != null ? [analyzedLineToValuedLine(ifStatement, valueExpressionToValue(ifStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(ifStatement.consequent, varTable))
@@ -273,6 +272,8 @@ var getDoWhileEndLine = function (cond, value) {
     return [doWhileEndLine(cond, value)];
 };
 var substituteForStatement = function (forStatement, varTable) {
+    if (Expression_Types_1.isVariableDeclaration(forStatement.init))
+        substituteVariableDeclaration(forStatement.init, varTable); // Add declaration to var table
     return [analyzedLineToValuedLine(forStatement, valueExpressionToValue(forStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(forStatement.body, varTable));
 };
 var substituteVariableDeclaration = function (varDeclaration, varTable) {

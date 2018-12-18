@@ -90,8 +90,9 @@ const valuedBreakToHtml = (line: ValuedLine): string =>
     `break;`;
 
 const doWhileEndToHtml = (line: ValuedLine): string => {
+    let returnLine = generateIdenttation() + `while (${line.analyzedLine.condition});`;
     ident -= tabLength;
-    return generateIdenttation() + `} while (${line.analyzedLine.condition});`;
+    return returnLine;
 }
 
 const elseToHtml = (line: ValuedLine): string => {

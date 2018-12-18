@@ -189,8 +189,8 @@ const doWhileStatementToAnalyzedLines = (doWhileStatement: DoWhileStatement, var
     [{line: doWhileStatement.loc.start.line, type: doWhileStatement.type, name: EMPTY, condition: getValOfValExp(doWhileStatement.test, varTable), value: EMPTY}];
 
 const concatAnalyzedLines = (prev: AnalyzedLine[], curr: AnalyzedLine[]): AnalyzedLine[] => prev.concat(curr);
-const programToAnalyzedLines = (program: Program, varTable: VarTuple[] = []): AnalyzedLine[] =>
-    program.body.length > 0 ? program.body.map((exp: Expression) => getAllAnalyzedLines(exp, varTable)).reduce(concatAnalyzedLines) : [];
+const programToAnalyzedLines = (program: Program): AnalyzedLine[] =>
+    program.body.length > 0 ? program.body.map((exp: Expression) => getAllAnalyzedLines(exp, [])).reduce(concatAnalyzedLines) : [];
 
 export const getAllAnalyzedLines = (exp: Expression, varTable: VarTuple[]): AnalyzedLine[] =>
     isAtomicExpression(exp) ? getAnalyzedLinesFromAtomicExpression(exp, varTable) :
@@ -228,7 +228,7 @@ const getAnalyzedLinesFromLoopStatement = (loop: LoopStatement, varTable: VarTup
     getAnalyzedLinesFromForStatement(loop, varTable);
 
 const getAnalyzedLinesFromBody = (b: Body, varTable: VarTuple[]): AnalyzedLine[] =>
-    isBlockStatement(b) ? (b.body.length > 0 ? b.body.map((exp: Expression) => getAllAnalyzedLines(exp, varTable)).reduce(concatAnalyzedLines) : []) :
+    isBlockStatement(b) ? b.body.map((exp: Expression) => getAllAnalyzedLines(exp, varTable)).reduce(concatAnalyzedLines) :
         getAllAnalyzedLines(b, varTable);
 
 const getAnalyzedLinesFromFunctionDeclaration = (func: FunctionDeclaration, varTable: VarTuple[]): AnalyzedLine[] =>

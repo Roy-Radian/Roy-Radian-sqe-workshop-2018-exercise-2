@@ -150,9 +150,8 @@ var doWhileStatementToAnalyzedLines = function (doWhileStatement, varTable) {
     return [{ line: doWhileStatement.loc.start.line, type: doWhileStatement.type, name: EMPTY, condition: exports.getValOfValExp(doWhileStatement.test, varTable), value: EMPTY }];
 };
 var concatAnalyzedLines = function (prev, curr) { return prev.concat(curr); };
-var programToAnalyzedLines = function (program, varTable) {
-    if (varTable === void 0) { varTable = []; }
-    return program.body.length > 0 ? program.body.map(function (exp) { return exports.getAllAnalyzedLines(exp, varTable); }).reduce(concatAnalyzedLines) : [];
+var programToAnalyzedLines = function (program) {
+    return program.body.length > 0 ? program.body.map(function (exp) { return exports.getAllAnalyzedLines(exp, []); }).reduce(concatAnalyzedLines) : [];
 };
 exports.programToAnalyzedLines = programToAnalyzedLines;
 exports.getAllAnalyzedLines = function (exp, varTable) {
@@ -191,7 +190,7 @@ var getAnalyzedLinesFromLoopStatement = function (loop, varTable) {
             getAnalyzedLinesFromForStatement(loop, varTable);
 };
 var getAnalyzedLinesFromBody = function (b, varTable) {
-    return Expression_Types_1.isBlockStatement(b) ? (b.body.length > 0 ? b.body.map(function (exp) { return exports.getAllAnalyzedLines(exp, varTable); }).reduce(concatAnalyzedLines) : []) :
+    return Expression_Types_1.isBlockStatement(b) ? b.body.map(function (exp) { return exports.getAllAnalyzedLines(exp, varTable); }).reduce(concatAnalyzedLines) :
         exports.getAllAnalyzedLines(b, varTable);
 };
 var getAnalyzedLinesFromFunctionDeclaration = function (func, varTable) {

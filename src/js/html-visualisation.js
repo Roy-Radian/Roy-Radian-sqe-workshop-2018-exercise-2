@@ -89,8 +89,9 @@ var valuedBreakToHtml = function (line) {
     return "break;";
 };
 var doWhileEndToHtml = function (line) {
+    var returnLine = generateIdenttation() + ("while (" + line.analyzedLine.condition + ");");
     ident -= tabLength;
-    return generateIdenttation() + ("} while (" + line.analyzedLine.condition + ");");
+    return returnLine;
 };
 var elseToHtml = function (line) {
     var returnLine = generateIdenttation() + "else {";
