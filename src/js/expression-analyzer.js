@@ -191,7 +191,7 @@ var getAnalyzedLinesFromLoopStatement = function (loop, varTable) {
             getAnalyzedLinesFromForStatement(loop, varTable);
 };
 var getAnalyzedLinesFromBody = function (b, varTable) {
-    return Expression_Types_1.isBlockStatement(b) ? b.body.map(function (exp) { return exports.getAllAnalyzedLines(exp, varTable); }).reduce(concatAnalyzedLines) :
+    return Expression_Types_1.isBlockStatement(b) ? (b.body.length > 0 ? b.body.map(function (exp) { return exports.getAllAnalyzedLines(exp, varTable); }).reduce(concatAnalyzedLines) : []) :
         exports.getAllAnalyzedLines(b, varTable);
 };
 var getAnalyzedLinesFromFunctionDeclaration = function (func, varTable) {

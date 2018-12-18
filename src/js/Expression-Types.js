@@ -14,6 +14,9 @@ exports.isExpressionStatement = function (x) { return isWithType(x) ? x.type ===
 exports.isIdentifier = function (x) { return isWithType(x) ? x.type === 'Identifier' : false; };
 exports.isLiteral = function (x) { return exports.isAtomicLiteral(x) || exports.isArrayExpression(x); };
 exports.isAtomicLiteral = function (x) { return isWithType(x) ? x.type === 'Literal' : false; };
+exports.createAtomicLiteralExpression = function (x) {
+    return ({ type: "Literal", value: x, raw: String(x), loc: null });
+};
 exports.isBinaryExpression = function (x) { return isWithType(x) ? x.type === 'BinaryExpression' : false; };
 exports.createBinaryExpression = function (operator, left, right, loc) {
     return ({ type: 'BinaryExpression', operator: operator, left: left, right: right, loc: loc });
@@ -57,6 +60,3 @@ exports.isDoWhileStatement = function (x) { return isWithType(x) ? x.type === 'D
 exports.isForStatement = function (x) { return isWithType(x) ? x.type === 'ForStatement' : false; };
 exports.isBreakStatement = function (x) { return isWithType(x) ? x.type === 'BreakStatement' : false; };
 exports.isIfStatement = function (x) { return isWithType(x) ? x.type === 'IfStatement' : false; };
-exports.literalToLitExp = function (x) {
-    return ({ type: "Literal", value: x, raw: String(x), loc: null });
-};

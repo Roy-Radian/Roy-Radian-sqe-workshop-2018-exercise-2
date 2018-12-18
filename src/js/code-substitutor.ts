@@ -29,7 +29,7 @@ import {
     isWhileStatement,
     isDoWhileStatement,
     VariableDeclaration,
-    literalToLitExp,
+    createAtomicLiteralExpression,
     AssignmentExpression,
     ReturnStatement,
     BreakStatement,
@@ -52,7 +52,12 @@ import {
     ArrayExpression,
     ArrayObject,
     isArrayExpression,
-    createArrayExpression, isArrayObject, isLogicalExpression, LogicalExpression, createLogicalExpression
+    createArrayExpression,
+    isArrayObject,
+    isLogicalExpression,
+    LogicalExpression,
+    createLogicalExpression,
+    isBlockStatement
 } from "./Expression-Types";
 import {AnalyzedLine, getFirstAnalyzedLine, getValOfValExp} from "./expression-analyzer";
 import {parseCode} from "./code-analyzer";
@@ -196,7 +201,7 @@ const performUpdate = (updateExpression: UpdateExpression, assignable: Assignabl
     if (isIdentifier(assignable)) {
         let oldValue = valueExpressionToValue(assignable, varTable);
         if (isNumber(oldValue)) {
-            updateVarTable(varTable, assignable, createBinaryExpression(op[0], replaceVarInIdentifier(assignable, assignable, varTable), literalToLitExp(1), updateExpression.loc)); // Transform the update exp into a binary exp so it would not be calculated more than once
+            updateVarTable(varTable, assignable, createBinaryExpression(op[0], replaceVarInIdentifier(assignable, assignable, varTable), createAtomicLiteralExpression(1), updateExpression.loc)); // Transform the update exp into a binary exp so it would not be calculated more than once
             return (prefix ? performUpdateOp(oldValue, op) : oldValue);
         }
         return "error: cannot update a non numeric value: " + oldValue;
@@ -307,12 +312,20 @@ const substituteValueExpression = (exp: ValueExpression, varTable: VarTuple[]): 
     isUpdateExpression(exp) ? substituteUpdateExpression(exp, varTable) : NO_LINES;
 
 const substituteUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): ValuedLine[] => { // Mutation due to chancing varTable
-    getValueOfUpdateExpression(updateExpression, varTable); // This will update varTable - we don't need the value
-    return NO_LINES;
+    let value = getValueOfUpdateExpression(updateExpression, varTable); // This will update varTable - we don't need the value
+    let arg = updateExpression.argument;
+    if (isIdentifier(arg) && !isVarParam(arg, varTable))
+        return NO_LINES;
+    return [analyzedLineToValuedLine(updateExpression, value, varTable)];
 }
 
 const getValuedLinesOfBody = (body: Body | null, varTable: VarTuple[]): ValuedLine[] =>
-    isBody(body) ? (isExpression(body) ? substituteExpression(body, copyArr(varTable)) : body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines)).concat([closeBlockLine]) : [];
+    isBody(body) ?
+        (isExpression(body) ? substituteExpression(body, copyArr(varTable)) :
+        (body.body.length > 0 ?
+            body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines) :
+            [])).concat([closeBlockLine]) :
+    [];
 
 const substituteIfStatement = (ifStatement: IfStatement, varTable: VarTuple[]): ValuedLine[] =>
     [analyzedLineToValuedLine(ifStatement, valueExpressionToValue(ifStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(ifStatement.consequent, varTable)).concat([elseLine]).concat(getValuedLinesOfBody(ifStatement.alternate, varTable));
@@ -336,7 +349,7 @@ const substituteForStatement = (forStatement: ForStatement, varTable: VarTuple[]
 
 const substituteVariableDeclaration = (varDeclaration: VariableDeclaration, varTable: VarTuple[]): ValuedLine[] => { // Mutations due to changing varTable
     for (let i = 0; i < varDeclaration.declarations.length; i++) {
-        updateVarTable(varTable, varDeclaration.declarations[i].id, (varDeclaration.declarations[i].init == null ? literalToLitExp(0) : varDeclaration.declarations[i].init));
+        updateVarTable(varTable, varDeclaration.declarations[i].id, (varDeclaration.declarations[i].init == null ? createAtomicLiteralExpression(0) : varDeclaration.declarations[i].init));
     }
     return NO_LINES;
 }

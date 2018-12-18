@@ -58,7 +58,7 @@ var specialLineToHtml = function (line) {
     return line.analyzedLine.type == 'ReturnStatement' ? generateIdenttation() + valuedReturnStatementToHtml(line) :
         line.analyzedLine.type == 'BreakStatement' ? generateIdenttation() + valuedBreakToHtml(line) :
             line.analyzedLine.type == 'DoWhileEnd' ? doWhileEndToHtml(line) :
-                line.analyzedLine.type == 'Else' ? generateIdenttation() + elseToHtml(line) :
+                line.analyzedLine.type == 'Else' ? elseToHtml(line) :
                     blockClosingToHtml(line);
 };
 var valuedCompoundToHtml = function (line, params) {
@@ -93,8 +93,9 @@ var doWhileEndToHtml = function (line) {
     return generateIdenttation() + ("} while (" + line.analyzedLine.condition + ");");
 };
 var elseToHtml = function (line) {
+    var returnLine = generateIdenttation() + "else {";
     ident += tabLength;
-    return "else";
+    return returnLine;
 };
 var blockClosingToHtml = function (line) {
     ident -= tabLength;

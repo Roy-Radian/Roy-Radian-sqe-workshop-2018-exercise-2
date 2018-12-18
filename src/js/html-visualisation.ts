@@ -59,7 +59,7 @@ const specialLineToHtml = (line: ValuedLine): string =>
     line.analyzedLine.type == 'ReturnStatement' ? generateIdenttation() + valuedReturnStatementToHtml(line) :
     line.analyzedLine.type == 'BreakStatement' ? generateIdenttation() + valuedBreakToHtml(line) :
     line.analyzedLine.type == 'DoWhileEnd' ? doWhileEndToHtml(line) :
-    line.analyzedLine.type == 'Else' ? generateIdenttation() + elseToHtml(line) :
+    line.analyzedLine.type == 'Else' ? elseToHtml(line) :
     blockClosingToHtml(line);
 
 const valuedCompoundToHtml = (line: ValuedLine, params: string[]): string =>
@@ -95,8 +95,9 @@ const doWhileEndToHtml = (line: ValuedLine): string => {
 }
 
 const elseToHtml = (line: ValuedLine): string => {
+    let returnLine = generateIdenttation() + `else {`;
     ident += tabLength;
-    return `else`;
+    return returnLine;
 }
 
 const blockClosingToHtml = (line: ValuedLine): string => {

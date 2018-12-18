@@ -228,7 +228,7 @@ const getAnalyzedLinesFromLoopStatement = (loop: LoopStatement, varTable: VarTup
     getAnalyzedLinesFromForStatement(loop, varTable);
 
 const getAnalyzedLinesFromBody = (b: Body, varTable: VarTuple[]): AnalyzedLine[] =>
-    isBlockStatement(b) ? b.body.map((exp: Expression) => getAllAnalyzedLines(exp, varTable)).reduce(concatAnalyzedLines) :
+    isBlockStatement(b) ? (b.body.length > 0 ? b.body.map((exp: Expression) => getAllAnalyzedLines(exp, varTable)).reduce(concatAnalyzedLines) : []) :
         getAllAnalyzedLines(b, varTable);
 
 const getAnalyzedLinesFromFunctionDeclaration = (func: FunctionDeclaration, varTable: VarTuple[]): AnalyzedLine[] =>

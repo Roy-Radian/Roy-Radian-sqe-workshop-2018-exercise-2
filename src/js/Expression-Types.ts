@@ -59,6 +59,8 @@ export interface AtomicLiteral {
     loc: Location;
 }
 export const isAtomicLiteral = (x: any): x is AtomicLiteral => isWithType(x) ? x.type === 'Literal' : false;
+export const createAtomicLiteralExpression = (x: any) : Literal =>
+    ({type: "Literal", value: x, raw: String(x), loc: null});
 
 //type BinaryOperator = '+' | '-' | '*' | '/' | '>' | '<' | '>=' | '<=' | '==' | '===' | '**' | '&&' | '||';
 export interface BinaryExpression {
@@ -244,6 +246,3 @@ export interface IfStatement {
     loc: Location;
 }
 export const isIfStatement = (x: any): x is IfStatement => isWithType(x) ? x.type === 'IfStatement' : false;
-
-export const literalToLitExp = (x: any) : Literal =>
-    ({type: "Literal", value: x, raw: String(x), loc: null});

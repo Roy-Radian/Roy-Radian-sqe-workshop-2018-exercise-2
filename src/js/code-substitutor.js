@@ -133,7 +133,7 @@ var performUpdate = function (updateExpression, assignable, op, prefix, varTable
     if (Expression_Types_1.isIdentifier(assignable)) {
         var oldValue = valueExpressionToValue(assignable, varTable);
         if (isNumber(oldValue)) {
-            updateVarTable(varTable, assignable, Expression_Types_1.createBinaryExpression(op[0], replaceVarInIdentifier(assignable, assignable, varTable), Expression_Types_1.literalToLitExp(1), updateExpression.loc)); // Transform the update exp into a binary exp so it would not be calculated more than once
+            updateVarTable(varTable, assignable, Expression_Types_1.createBinaryExpression(op[0], replaceVarInIdentifier(assignable, assignable, varTable), Expression_Types_1.createAtomicLiteralExpression(1), updateExpression.loc)); // Transform the update exp into a binary exp so it would not be calculated more than once
             return (prefix ? performUpdateOp(oldValue, op) : oldValue);
         }
         return "error: cannot update a non numeric value: " + oldValue;
@@ -228,11 +228,19 @@ var substituteValueExpression = function (exp, varTable) {
     return Expression_Types_1.isUpdateExpression(exp) ? substituteUpdateExpression(exp, varTable) : NO_LINES;
 };
 var substituteUpdateExpression = function (updateExpression, varTable) {
-    getValueOfUpdateExpression(updateExpression, varTable); // This will update varTable - we don't need the value
-    return NO_LINES;
+    var value = getValueOfUpdateExpression(updateExpression, varTable); // This will update varTable - we don't need the value
+    var arg = updateExpression.argument;
+    if (Expression_Types_1.isIdentifier(arg) && !exports.isVarParam(arg, varTable))
+        return NO_LINES;
+    return [analyzedLineToValuedLine(updateExpression, value, varTable)];
 };
 var getValuedLinesOfBody = function (body, varTable) {
-    return Expression_Types_1.isBody(body) ? (Expression_Types_1.isExpression(body) ? substituteExpression(body, copyArr(varTable)) : body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines)).concat([closeBlockLine]) : [];
+    return Expression_Types_1.isBody(body) ?
+        (Expression_Types_1.isExpression(body) ? substituteExpression(body, copyArr(varTable)) :
+            (body.body.length > 0 ?
+                body.body.map(getSubstituteExpFunc(copyArr(varTable))).reduce(concatValuedLines) :
+                [])).concat([closeBlockLine]) :
+        [];
 };
 var substituteIfStatement = function (ifStatement, varTable) {
     return [analyzedLineToValuedLine(ifStatement, valueExpressionToValue(ifStatement.test, varTable), varTable)].concat(getValuedLinesOfBody(ifStatement.consequent, varTable)).concat([elseLine]).concat(getValuedLinesOfBody(ifStatement.alternate, varTable));
@@ -256,7 +264,7 @@ var substituteForStatement = function (forStatement, varTable) {
 };
 var substituteVariableDeclaration = function (varDeclaration, varTable) {
     for (var i = 0; i < varDeclaration.declarations.length; i++) {
-        updateVarTable(varTable, varDeclaration.declarations[i].id, (varDeclaration.declarations[i].init == null ? Expression_Types_1.literalToLitExp(0) : varDeclaration.declarations[i].init));
+        updateVarTable(varTable, varDeclaration.declarations[i].id, (varDeclaration.declarations[i].init == null ? Expression_Types_1.createAtomicLiteralExpression(0) : varDeclaration.declarations[i].init));
     }
     return NO_LINES;
 };
