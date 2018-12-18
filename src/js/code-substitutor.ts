@@ -196,8 +196,21 @@ const performUpdate = (updateExpression: UpdateExpression, assignable: Assignabl
         }
         return "error: cannot update a non numeric value: " + oldValue;
     }
-    else
-        return "unsupported: array";
+    else {
+        let arr = assignable.object;
+        let i = valueExpressionToValue(assignable.property, varTable);
+        if (isNumber(i) && isIdentifier(arr)) {
+            let oldValue = getValueExpressionOfIdentifier(arr, varTable);
+            if (isArrayExpression(oldValue)) {
+                let newElements = oldValue.elements.map((v: ValueExpression, index: number): ValueExpression =>
+                    index == i ? createBinaryExpression(updateExpression.operator[0], v, createAtomicLiteralExpression(1), updateExpression.loc) : v);
+                let newArr = createArrayExpression(newElements, arr.loc);
+                updateVarTable(varTable, arr, newArr);
+                return (prefix) ? valueExpressionToValue(newElements[i], varTable) : valueExpressionToValue(oldValue.elements[i], varTable);
+            }
+        }
+        return "error: not a valid array";
+    }
 }
 
 const updateVarTable = (varTable: VarTuple[], id: Identifier, newValue: ValueExpression): void => { // Mutations due to changing varTable
@@ -304,9 +317,16 @@ const substituteValueExpression = (exp: ValueExpression, varTable: VarTuple[]): 
 const substituteUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): ValuedLine[] => { // Mutation due to chancing varTable
     let value = getValueOfUpdateExpression(updateExpression, varTable); // This will update varTable - we don't need the value
     let arg = updateExpression.argument;
-    if (isIdentifier(arg) && !isVarParam(arg, varTable))
-        return NO_LINES;
-    return [analyzedLineToValuedLine(updateExpression, value, varTable)];
+    if (isIdentifier(arg)) {
+        if (isVarParam(arg, varTable))
+            return [analyzedLineToValuedLine(updateExpression, value, varTable)];
+    }
+    else {
+        let obj = arg.object;
+        if (isIdentifier(obj) && isVarParam(obj, varTable))
+            return [analyzedLineToValuedLine(updateExpression, value, varTable)];
+    }
+    return NO_LINES;
 }
 
 const getValuedLinesOfBody = (body: Body | null, varTable: VarTuple[]): ValuedLine[] =>
