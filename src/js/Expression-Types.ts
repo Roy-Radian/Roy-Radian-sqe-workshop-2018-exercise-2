@@ -49,13 +49,16 @@ export interface Identifier {
 }
 export const isIdentifier = (x: any): x is Identifier => isWithType(x) ? x.type === 'Identifier' : false;
 
-export interface Literal {
+export type Literal = AtomicLiteral | ArrayExpression;
+export const isLiteral = (x: any): x is Literal => isAtomicLiteral(x) || isArrayExpression(x);
+
+export interface AtomicLiteral {
     type: 'Literal';
     value: any;
     raw: string;
     loc: Location;
 }
-export const isLiteral = (x: any): x is Literal => isWithType(x) ? x.type === 'Literal' : false;
+export const isAtomicLiteral = (x: any): x is AtomicLiteral => isWithType(x) ? x.type === 'Literal' : false;
 
 //type BinaryOperator = '+' | '-' | '*' | '/' | '>' | '<' | '>=' | '<=' | '==' | '===' | '**' | '&&' | '||';
 export interface BinaryExpression {
@@ -159,16 +162,27 @@ export const isConditionalExpression = (x: any): x is ConditionalExpression => i
 export const createConditionalExpression = (test: ValueExpression, consequent: ValueExpression, alternate: ValueExpression, loc: Location): ConditionalExpression =>
     ({type: 'ConditionalExpression', test: test, consequent: consequent, alternate: alternate, loc: loc});
 
+export type ArrayObject = Identifier | ArrayExpression;
+export const isArrayObject = (x: any): x is ArrayObject => isIdentifier(x) || isArrayExpression(x);
 export interface MemberExpression {
     type: 'MemberExpression';
     computed: boolean;
-    object: ValueExpression;
+    object: ArrayObject;
     property: ValueExpression;
     loc: Location;
 }
 export const isMemberExpression = (x: any): x is MemberExpression => isWithType(x) ? x.type === 'MemberExpression' : false;
-export const createMemberExpression = (computed: boolean, object: ValueExpression, property: ValueExpression, loc: Location): MemberExpression =>
+export const createMemberExpression = (computed: boolean, object: ArrayObject, property: ValueExpression, loc: Location): MemberExpression =>
     ({type: 'MemberExpression', computed: computed, object: object, property: property, loc: loc});
+
+export interface ArrayExpression {
+    type: 'ArrayExpression';
+    elements: ValueExpression[];
+    loc: Location;
+}
+export const isArrayExpression = (x: any): x is ArrayExpression => isWithType(x) ? x.type === 'ArrayExpression' : false;
+export const createArrayExpression = (elements: ValueExpression[], loc: Location): ArrayExpression =>
+    ({type: 'ArrayExpression', elements: elements, loc: loc});
 
 export interface ReturnStatement {
     type: 'ReturnStatement';

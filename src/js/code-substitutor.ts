@@ -45,16 +45,25 @@ import {
     createBinaryExpression,
     createUnaryExpression,
     createConditionalExpression,
-    createMemberExpression, isBody
+    createMemberExpression,
+    isBody,
+    Literal,
+    isAtomicLiteral,
+    ArrayExpression,
+    ArrayObject,
+    isArrayExpression,
+    createArrayExpression, isArrayObject
 } from "./Expression-Types";
 import {AnalyzedLine, getFirstAnalyzedLine, getValOfValExp} from "./expression-analyzer";
 import {parseCode} from "./code-analyzer";
 
-type Value = number | string | boolean;
+type Value = number | string | boolean | ValueArray;
+interface ValueArray extends Array<Value> {};
 
 const isNumber = (x: Value): x is number => (typeof x) === "number";
 const isString = (x: Value): x is string => (typeof x) === "string";
 const isBoolean = (x: Value) : x is boolean => (typeof x) === "boolean";
+const isArray = (x: Value): x is any[] => x instanceof Array;
 
 const falseLiteral = 'false';
 const trueLiteral = 'true';
@@ -84,19 +93,24 @@ const parseParams = (paramsTxt: string): VarTuple[] =>
     paramsTxt.length > 0 ? paramsTxt.split(';').map(paramToValueTuple) : [];
 
 const valueExpressionToValue = (v: ValueExpression, varTable: VarTuple[]): Value =>
-    isLiteral(v) ? stringToValue(v.value) :
+    isLiteral(v) ? getValueOfLiteral(v, varTable) :
     isIdentifier(v) ? valueExpressionToValue(getValueExpressionOfIdentifier(v, varTable), varTable) :
     isComputationExpression(v) ? getValueOfComputationExpression(v, varTable) :
     isConditionalExpression(v) ? getValueOfConditionalExpression(v, varTable) :
     getValOfMemberExpression(v, varTable);
 
+const getValueOfLiteral = (literal: Literal, varTable: VarTuple[]): Value =>
+    isAtomicLiteral(literal) ? literal.value :
+    getValueOfArrayExpression(literal, varTable);
+
+const getValueOfArrayExpression = (arr: ArrayExpression, varTable: VarTuple[]): Value =>
+    arr.elements.length > 0 ? arr.elements.map((v: ValueExpression): Value => valueExpressionToValue(v, varTable)) :
+    [];
+
 export const getValueExpressionOfIdentifier = (id: Identifier, varTable: VarTuple[]): ValueExpression =>
     varTable.length == 0 ? null :
     varTable[0].name == id.name ? varTable[0].value :
     getValueExpressionOfIdentifier(id, varTable.slice(1));
-
-const getValueOfIdentifier = (id: Identifier, varTable: VarTuple[]): Value =>
-    valueExpressionToValue(getValueExpressionOfIdentifier(id, varTable), varTable);
 
 const getValueOfComputationExpression = (comp: ComputationExpression, varTable: VarTuple[]): Value =>
     isBinaryExpression(comp) ? getValueOfBinaryExpression(comp, varTable) :
@@ -108,7 +122,19 @@ const getValueOfConditionalExpression = (cond: ConditionalExpression, varTable: 
     valueExpressionToValue(cond.alternate, varTable);
 
 const getValOfMemberExpression = (memberExpression: MemberExpression, varTable: VarTuple[]): Value =>
-    "unsupported: array: " + memberExpression.object + "[" + memberExpression.property + "]";
+    computeMemberExpression(memberExpression.object, valueExpressionToValue(memberExpression.property, varTable), varTable);
+
+const computeMemberExpression = (obj: ArrayObject, property: Value, varTable: VarTuple[]): Value =>
+    isNumber(property) ? (isArrayExpression(obj) ? valueExpressionToValue(obj.elements[property], varTable) : getValueOfArrIdentifier(obj, property, varTable)) :
+        "error: no property " + property + " in array";
+
+const getValueOfArrIdentifier = (obj: Identifier, property: number, varTable: VarTuple[]): Value =>
+    getElementOfArr(getValueExpressionOfIdentifier(obj, varTable), property, varTable);
+
+const getElementOfArr = (arr: ValueExpression, index: number, varTable: VarTuple[]): Value =>
+    isArrayExpression(arr) ? valueExpressionToValue(arr.elements[index], varTable) :
+    isIdentifier(arr) ? getValueOfArrIdentifier(arr, index, varTable) :
+    "error: not an array";
 
 const getValueOfBinaryExpression = (binaryExpression: BinaryExpression, varTable: VarTuple[]): Value =>
     performBinaryOp(valueExpressionToValue(binaryExpression.left, varTable), valueExpressionToValue(binaryExpression.right, varTable), binaryExpression.operator);
@@ -120,6 +146,7 @@ const performBinaryOp = (left: Value, right: Value, op: string): Value =>
     performBooleanEqBinaryOp(left, right, op);
 
 const performAddition = (left: Value, right: Value): Value =>
+    isArray(left) || isArray(right) ? "Undefined operation on arrays" :
     isString(left) ? left + right :
     isString(right) ? left + right :
     isBoolean(left) || isBoolean(right) ? "undefined operation + between booleans" :
@@ -213,18 +240,31 @@ const elseLine = {
 const copyArr = <T>(arr: T[]): T[] => JSON.parse(JSON.stringify(arr));
 
 const replaceVarInValueExpression = (id: Identifier, valueExpression: ValueExpression, varTable: VarTuple[]): ValueExpression =>
-    isIdentifier(valueExpression) ? (id.name == valueExpression.name ? getValueExpressionOfIdentifier(valueExpression, varTable) : valueExpression):
+    isIdentifier(valueExpression) ? replaceVarInIdentifier(id, valueExpression, varTable) :
     isLiteral(valueExpression) ? valueExpression :
     isComputationExpression(valueExpression) ? replaceVarsInComputationExpression(id, valueExpression, varTable) :
     isConditionalExpression(valueExpression) ? replaceVarsInCondtionalExpression(id, valueExpression, varTable) :
     replaceVarInMemberExpression(id, valueExpression, varTable);
+
+const replaceVarInIdentifier = (id: Identifier, replaceIn: Identifier, varTable: VarTuple[]): ValueExpression =>
+    id.name == replaceIn.name ? getValueExpressionOfIdentifier(replaceIn, varTable) : replaceIn;
 
 const replaceVarsInComputationExpression = (id: Identifier, comp: ComputationExpression, varTable: VarTuple[]): ValueExpression =>
     isBinaryExpression(comp) ? createBinaryExpression(comp.operator, replaceVarInValueExpression(id, comp.left, varTable), replaceVarInValueExpression(id, comp.right, varTable), comp.loc) :
     createUnaryExpression(comp.operator, replaceVarInValueExpression(id, comp.argument, varTable), comp.prefix, comp.loc);
 
 const replaceVarInMemberExpression = (id: Identifier, memberExpression: MemberExpression, varTable: VarTuple[]): ValueExpression =>
-    createMemberExpression(memberExpression.computed, replaceVarInValueExpression(id, memberExpression.object, varTable), replaceVarInValueExpression(id, memberExpression.property, varTable), memberExpression.loc);
+    createMemberExpression(memberExpression.computed, replaceVarInMemberObject(id, memberExpression.object, varTable), replaceVarInValueExpression(id, memberExpression.property, varTable), memberExpression.loc);
+
+const replaceVarInMemberObject = (id: Identifier, obj: ArrayObject, varTable: VarTuple[]): ArrayObject =>
+    isArrayExpression(obj) ? (obj.elements.length > 0 ?
+        createArrayExpression(obj.elements.map((v: ValueExpression): ValueExpression => replaceVarInValueExpression(id, v, varTable)), obj.loc) :
+        createArrayExpression([], obj.loc)):
+    valueExpressionToArrObject(replaceVarInIdentifier(id, obj, varTable));
+
+const valueExpressionToArrObject = (valueExpression: ValueExpression): ArrayObject =>
+    isArrayObject(valueExpression) ? valueExpression :
+    createArrayExpression([], valueExpression.loc); // Error: not an array
 
 const replaceVarsInCondtionalExpression = (id: Identifier, cond: ConditionalExpression, varTable: VarTuple[]): ValueExpression =>
     createConditionalExpression(cond.test, cond.consequent, cond.alternate, cond.loc);

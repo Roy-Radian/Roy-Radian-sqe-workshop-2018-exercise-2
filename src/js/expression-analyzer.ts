@@ -35,7 +35,7 @@ import {
     VariableDeclaration,
     VariableDeclarator,
     WhileStatement,
-    Body
+    Body, isAtomicLiteral, ArrayExpression
 } from "./Expression-Types";
 import {getValueExpressionOfIdentifier, isVarParam, VarTuple} from "./code-substitutor";
 
@@ -82,11 +82,20 @@ const getValOfInit = (init: ValueExpression | null, varTable: VarTuple[]): strin
     'null';
 
 export const getValOfValExp = (v: ValueExpression, varTable: VarTuple[]): string =>
-    isLiteral(v) ? v.raw :
+    isLiteral(v) ? getValOfLiteral(v, varTable) :
     isIdentifier(v) ? (varTable.length == 0 || isVarParam(v, varTable) ? v.name : getValOfValExp(getValueExpressionOfIdentifier(v, varTable), varTable))  :
     isComputationExpression(v) ? getValOfComputationExpression(v, varTable) :
     isConditionalExpression(v) ? getValOfConditionalExpression(v, varTable) :
     getValOfMemberExpression(v, varTable);
+
+const getValOfLiteral = (literal: Literal, varTable: VarTuple[]): string =>
+    isAtomicLiteral(literal) ? literal.raw :
+    arrayToString(literal, varTable);
+
+const concatArrayStrings = (prev: string, curr: string): string => prev + ', ' + curr;
+const arrayToString = (arr: ArrayExpression, varTable: VarTuple[]): string =>
+    arr.elements.length == 0 ? '[]' :
+    '[' + arr.elements.map((v: ValueExpression): string => getValOfValExp(v, varTable)).reduce(concatArrayStrings) + ']';
 
 const getValOfComputationExpression = (c: ComputationExpression, varTable: VarTuple[]): string =>
     isBinaryExpression(c) ? '(' + getValOfValExp(c.left, varTable) + ' ' + c.operator + ' ' + getValOfValExp(c.right, varTable) + ')' :
@@ -101,7 +110,7 @@ const getValOfMemberExpression = (m: MemberExpression, varTable: VarTuple[]): st
         getValOfValExp(m.object, varTable) + '.' + getValOfValExp(m.property, varTable);
 
 const valueExpressionToAnalyzedLines = (val: ValueExpression, varTable: VarTuple[]): AnalyzedLine[] =>
-    isLiteral(val) ? literalExpressionToAnalyzedLines(val) :
+    isLiteral(val) ? literalExpressionToAnalyzedLines(val, varTable) :
     isIdentifier(val) ? identifierToAnalyzedLines(val, varTable) :
     isComputationExpression(val) ? computationExpressionToAnalyzedLines(val, varTable) :
     isConditionalExpression(val) ? conditionalExpressionToAnalyzedLines(val, varTable) :
@@ -112,8 +121,8 @@ const computationExpressionToAnalyzedLines = (comp: ComputationExpression, varTa
     isBinaryExpression(comp) ? binaryExpressionToAnalyzedLines(comp, varTable) :
     unaryExpressionToAnalyzedLines(comp, varTable);
 
-const literalExpressionToAnalyzedLines = (l: Literal): AnalyzedLine[] =>
-    [{line: l.loc.start.line, type: l.type, name: EMPTY, condition: EMPTY, value: l.raw}];
+const literalExpressionToAnalyzedLines = (l: Literal, varTable: VarTuple[]): AnalyzedLine[] =>
+    [{line: l.loc.start.line, type: l.type, name: EMPTY, condition: EMPTY, value: getValOfLiteral(l, varTable)}];
 
 const identifierToAnalyzedLines = (i: Identifier, varTable: VarTuple[]): AnalyzedLine[] =>
     [{line: i.loc.start.line, type: i.type, name: (varTable.length == 0 || isVarParam(i, varTable) ? i.name : getValOfValExp(getValueExpressionOfIdentifier(i, varTable), varTable)), condition: EMPTY, value: EMPTY}];

@@ -10,7 +10,8 @@ exports.isCompoundExpression = function (x) { return exports.isExpressionStateme
 exports.isExpression = function (x) { return exports.isAtomicExpression(x) || exports.isCompoundExpression(x); };
 exports.isExpressionStatement = function (x) { return isWithType(x) ? x.type === 'ExpressionStatement' : false; };
 exports.isIdentifier = function (x) { return isWithType(x) ? x.type === 'Identifier' : false; };
-exports.isLiteral = function (x) { return isWithType(x) ? x.type === 'Literal' : false; };
+exports.isLiteral = function (x) { return exports.isAtomicLiteral(x) || exports.isArrayExpression(x); };
+exports.isAtomicLiteral = function (x) { return isWithType(x) ? x.type === 'Literal' : false; };
 exports.isBinaryExpression = function (x) { return isWithType(x) ? x.type === 'BinaryExpression' : false; };
 exports.createBinaryExpression = function (operator, left, right, loc) {
     return ({ type: 'BinaryExpression', operator: operator, left: left, right: right, loc: loc });
@@ -34,9 +35,14 @@ exports.isConditionalExpression = function (x) { return isWithType(x) ? x.type =
 exports.createConditionalExpression = function (test, consequent, alternate, loc) {
     return ({ type: 'ConditionalExpression', test: test, consequent: consequent, alternate: alternate, loc: loc });
 };
+exports.isArrayObject = function (x) { return exports.isIdentifier(x) || exports.isArrayExpression(x); };
 exports.isMemberExpression = function (x) { return isWithType(x) ? x.type === 'MemberExpression' : false; };
 exports.createMemberExpression = function (computed, object, property, loc) {
     return ({ type: 'MemberExpression', computed: computed, object: object, property: property, loc: loc });
+};
+exports.isArrayExpression = function (x) { return isWithType(x) ? x.type === 'ArrayExpression' : false; };
+exports.createArrayExpression = function (elements, loc) {
+    return ({ type: 'ArrayExpression', elements: elements, loc: loc });
 };
 exports.isReturnStatement = function (x) { return isWithType(x) ? x.type === 'ReturnStatement' : false; };
 exports.isWhileStatement = function (x) { return isWithType(x) ? x.type === 'WhileStatement' : false; };

@@ -43,11 +43,20 @@ var getValOfInit = function (init, varTable) {
         'null';
 };
 exports.getValOfValExp = function (v, varTable) {
-    return Expression_Types_1.isLiteral(v) ? v.raw :
+    return Expression_Types_1.isLiteral(v) ? getValOfLiteral(v, varTable) :
         Expression_Types_1.isIdentifier(v) ? (varTable.length == 0 || code_substitutor_1.isVarParam(v, varTable) ? v.name : exports.getValOfValExp(code_substitutor_1.getValueExpressionOfIdentifier(v, varTable), varTable)) :
             Expression_Types_1.isComputationExpression(v) ? getValOfComputationExpression(v, varTable) :
                 Expression_Types_1.isConditionalExpression(v) ? getValOfConditionalExpression(v, varTable) :
                     getValOfMemberExpression(v, varTable);
+};
+var getValOfLiteral = function (literal, varTable) {
+    return Expression_Types_1.isAtomicLiteral(literal) ? literal.raw :
+        arrayToString(literal, varTable);
+};
+var concatArrayStrings = function (prev, curr) { return prev + ', ' + curr; };
+var arrayToString = function (arr, varTable) {
+    return arr.elements.length == 0 ? '[]' :
+        '[' + arr.elements.map(function (v) { return exports.getValOfValExp(v, varTable); }).reduce(concatArrayStrings) + ']';
 };
 var getValOfComputationExpression = function (c, varTable) {
     return Expression_Types_1.isBinaryExpression(c) ? '(' + exports.getValOfValExp(c.left, varTable) + ' ' + c.operator + ' ' + exports.getValOfValExp(c.right, varTable) + ')' :
@@ -62,7 +71,7 @@ var getValOfMemberExpression = function (m, varTable) {
         exports.getValOfValExp(m.object, varTable) + '.' + exports.getValOfValExp(m.property, varTable);
 };
 var valueExpressionToAnalyzedLines = function (val, varTable) {
-    return Expression_Types_1.isLiteral(val) ? literalExpressionToAnalyzedLines(val) :
+    return Expression_Types_1.isLiteral(val) ? literalExpressionToAnalyzedLines(val, varTable) :
         Expression_Types_1.isIdentifier(val) ? identifierToAnalyzedLines(val, varTable) :
             Expression_Types_1.isComputationExpression(val) ? computationExpressionToAnalyzedLines(val, varTable) :
                 Expression_Types_1.isConditionalExpression(val) ? conditionalExpressionToAnalyzedLines(val, varTable) :
@@ -73,8 +82,8 @@ var computationExpressionToAnalyzedLines = function (comp, varTable) {
         Expression_Types_1.isBinaryExpression(comp) ? binaryExpressionToAnalyzedLines(comp, varTable) :
             unaryExpressionToAnalyzedLines(comp, varTable);
 };
-var literalExpressionToAnalyzedLines = function (l) {
-    return [{ line: l.loc.start.line, type: l.type, name: EMPTY, condition: EMPTY, value: l.raw }];
+var literalExpressionToAnalyzedLines = function (l, varTable) {
+    return [{ line: l.loc.start.line, type: l.type, name: EMPTY, condition: EMPTY, value: getValOfLiteral(l, varTable) }];
 };
 var identifierToAnalyzedLines = function (i, varTable) {
     return [{ line: i.loc.start.line, type: i.type, name: (varTable.length == 0 || code_substitutor_1.isVarParam(i, varTable) ? i.name : exports.getValOfValExp(code_substitutor_1.getValueExpressionOfIdentifier(i, varTable), varTable)), condition: EMPTY, value: EMPTY }];

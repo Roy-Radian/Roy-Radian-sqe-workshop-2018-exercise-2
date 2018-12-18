@@ -3,9 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Expression_Types_1 = require("./Expression-Types");
 var expression_analyzer_1 = require("./expression-analyzer");
 var code_analyzer_1 = require("./code-analyzer");
+;
 var isNumber = function (x) { return (typeof x) === "number"; };
 var isString = function (x) { return (typeof x) === "string"; };
 var isBoolean = function (x) { return (typeof x) === "boolean"; };
+var isArray = function (x) { return x instanceof Array; };
 var falseLiteral = 'false';
 var trueLiteral = 'true';
 var isNumericString = function (x) { return !isNaN(Number(x)); };
@@ -28,19 +30,24 @@ var parseParams = function (paramsTxt) {
 };
 exports.parseParams = parseParams;
 var valueExpressionToValue = function (v, varTable) {
-    return Expression_Types_1.isLiteral(v) ? stringToValue(v.value) :
+    return Expression_Types_1.isLiteral(v) ? getValueOfLiteral(v, varTable) :
         Expression_Types_1.isIdentifier(v) ? valueExpressionToValue(exports.getValueExpressionOfIdentifier(v, varTable), varTable) :
             Expression_Types_1.isComputationExpression(v) ? getValueOfComputationExpression(v, varTable) :
                 Expression_Types_1.isConditionalExpression(v) ? getValueOfConditionalExpression(v, varTable) :
                     getValOfMemberExpression(v, varTable);
 };
+var getValueOfLiteral = function (literal, varTable) {
+    return Expression_Types_1.isAtomicLiteral(literal) ? literal.value :
+        getValueOfArrayExpression(literal, varTable);
+};
+var getValueOfArrayExpression = function (arr, varTable) {
+    return arr.elements.length > 0 ? arr.elements.map(function (v) { return valueExpressionToValue(v, varTable); }) :
+        [];
+};
 exports.getValueExpressionOfIdentifier = function (id, varTable) {
     return varTable.length == 0 ? null :
         varTable[0].name == id.name ? varTable[0].value :
             exports.getValueExpressionOfIdentifier(id, varTable.slice(1));
-};
-var getValueOfIdentifier = function (id, varTable) {
-    return valueExpressionToValue(exports.getValueExpressionOfIdentifier(id, varTable), varTable);
 };
 var getValueOfComputationExpression = function (comp, varTable) {
     return Expression_Types_1.isBinaryExpression(comp) ? getValueOfBinaryExpression(comp, varTable) :
@@ -52,7 +59,19 @@ var getValueOfConditionalExpression = function (cond, varTable) {
         valueExpressionToValue(cond.alternate, varTable);
 };
 var getValOfMemberExpression = function (memberExpression, varTable) {
-    return "unsupported: array: " + memberExpression.object + "[" + memberExpression.property + "]";
+    return computeMemberExpression(memberExpression.object, valueExpressionToValue(memberExpression.property, varTable), varTable);
+};
+var computeMemberExpression = function (obj, property, varTable) {
+    return isNumber(property) ? (Expression_Types_1.isArrayExpression(obj) ? valueExpressionToValue(obj.elements[property], varTable) : getValueOfArrIdentifier(obj, property, varTable)) :
+        "error: no property " + property + " in array";
+};
+var getValueOfArrIdentifier = function (obj, property, varTable) {
+    return getElementOfArr(exports.getValueExpressionOfIdentifier(obj, varTable), property, varTable);
+};
+var getElementOfArr = function (arr, index, varTable) {
+    return Expression_Types_1.isArrayExpression(arr) ? valueExpressionToValue(arr.elements[index], varTable) :
+        Expression_Types_1.isIdentifier(arr) ? getValueOfArrIdentifier(arr, index, varTable) :
+            "error: not an array";
 };
 var getValueOfBinaryExpression = function (binaryExpression, varTable) {
     return performBinaryOp(valueExpressionToValue(binaryExpression.left, varTable), valueExpressionToValue(binaryExpression.right, varTable), binaryExpression.operator);
@@ -64,10 +83,11 @@ var performBinaryOp = function (left, right, op) {
             performBooleanEqBinaryOp(left, right, op);
 };
 var performAddition = function (left, right) {
-    return isString(left) ? left + right :
-        isString(right) ? left + right :
-            isBoolean(left) || isBoolean(right) ? "undefined operation + between booleans" :
-                left + right;
+    return isArray(left) || isArray(right) ? "Undefined operation on arrays" :
+        isString(left) ? left + right :
+            isString(right) ? left + right :
+                isBoolean(left) || isBoolean(right) ? "undefined operation + between booleans" :
+                    left + right;
 };
 var isNumericOp = function (op) {
     return ['-', '*', '/', '**'].indexOf(op) != -1;
@@ -143,19 +163,32 @@ var elseLine = {
 };
 var copyArr = function (arr) { return JSON.parse(JSON.stringify(arr)); };
 var replaceVarInValueExpression = function (id, valueExpression, varTable) {
-    return Expression_Types_1.isIdentifier(valueExpression) ? (id.name == valueExpression.name ? exports.getValueExpressionOfIdentifier(valueExpression, varTable) : valueExpression) :
+    return Expression_Types_1.isIdentifier(valueExpression) ? replaceVarInIdentifier(id, valueExpression, varTable) :
         Expression_Types_1.isLiteral(valueExpression) ? valueExpression :
             Expression_Types_1.isComputationExpression(valueExpression) ? replaceVarsInComputationExpression(id, valueExpression, varTable) :
                 Expression_Types_1.isConditionalExpression(valueExpression) ? replaceVarsInCondtionalExpression(id, valueExpression, varTable) :
                     replaceVarInMemberExpression(id, valueExpression, varTable);
+};
+var replaceVarInIdentifier = function (id, replaceIn, varTable) {
+    return id.name == replaceIn.name ? exports.getValueExpressionOfIdentifier(replaceIn, varTable) : replaceIn;
 };
 var replaceVarsInComputationExpression = function (id, comp, varTable) {
     return Expression_Types_1.isBinaryExpression(comp) ? Expression_Types_1.createBinaryExpression(comp.operator, replaceVarInValueExpression(id, comp.left, varTable), replaceVarInValueExpression(id, comp.right, varTable), comp.loc) :
         Expression_Types_1.createUnaryExpression(comp.operator, replaceVarInValueExpression(id, comp.argument, varTable), comp.prefix, comp.loc);
 };
 var replaceVarInMemberExpression = function (id, memberExpression, varTable) {
-    return Expression_Types_1.createMemberExpression(memberExpression.computed, replaceVarInValueExpression(id, memberExpression.object, varTable), replaceVarInValueExpression(id, memberExpression.property, varTable), memberExpression.loc);
+    return Expression_Types_1.createMemberExpression(memberExpression.computed, replaceVarInMemberObject(id, memberExpression.object, varTable), replaceVarInValueExpression(id, memberExpression.property, varTable), memberExpression.loc);
 };
+var replaceVarInMemberObject = function (id, obj, varTable) {
+    return Expression_Types_1.isArrayExpression(obj) ? (obj.elements.length > 0 ?
+        Expression_Types_1.createArrayExpression(obj.elements.map(function (v) { return replaceVarInValueExpression(id, v, varTable); }), obj.loc) :
+        Expression_Types_1.createArrayExpression([], obj.loc)) :
+        valueExpressionToArrObject(replaceVarInIdentifier(id, obj, varTable));
+};
+var valueExpressionToArrObject = function (valueExpression) {
+    return Expression_Types_1.isArrayObject(valueExpression) ? valueExpression :
+        Expression_Types_1.createArrayExpression([], valueExpression.loc);
+}; // Error: not an array
 var replaceVarsInCondtionalExpression = function (id, cond, varTable) {
     return Expression_Types_1.createConditionalExpression(cond.test, cond.consequent, cond.alternate, cond.loc);
 };
