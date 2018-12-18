@@ -73,7 +73,7 @@ var getValOfMemberExpression = function (m, varTable) {
 };
 var valueExpressionToAnalyzedLines = function (val, varTable) {
     return Expression_Types_1.isLiteral(val) ? literalExpressionToAnalyzedLines(val, varTable) :
-        Expression_Types_1.isIdentifier(val) ? identifierToAnalyzedLines(val, varTable) :
+        Expression_Types_1.isIdentifier(val) ? identifierToAnalyzedLines(val) :
             Expression_Types_1.isComputationExpression(val) ? computationExpressionToAnalyzedLines(val, varTable) :
                 Expression_Types_1.isConditionalExpression(val) ? conditionalExpressionToAnalyzedLines(val, varTable) :
                     memberExpressionToAnalyzedLines(val, varTable);
@@ -87,8 +87,8 @@ var computationExpressionToAnalyzedLines = function (comp, varTable) {
 var literalExpressionToAnalyzedLines = function (l, varTable) {
     return [{ line: l.loc.start.line, type: l.type, name: EMPTY, condition: EMPTY, value: getValOfLiteral(l, varTable) }];
 };
-var identifierToAnalyzedLines = function (i, varTable) {
-    return [{ line: i.loc.start.line, type: i.type, name: (varTable.length == 0 || code_substitutor_1.isVarParam(i, varTable) ? i.name : exports.getValOfValExp(code_substitutor_1.getValueExpressionOfIdentifier(i, varTable), varTable)), condition: EMPTY, value: EMPTY }];
+var identifierToAnalyzedLines = function (i) {
+    return [{ line: i.loc.start.line, type: i.type, name: i.name, condition: EMPTY, value: EMPTY }];
 };
 var binaryExpressionToAnalyzedLines = function (b, varTable) {
     return [{ line: b.loc.start.line, type: b.type, name: EMPTY, condition: EMPTY, value: exports.getValOfValExp(b, varTable) }];

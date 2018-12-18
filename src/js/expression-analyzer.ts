@@ -112,7 +112,7 @@ const getValOfMemberExpression = (m: MemberExpression, varTable: VarTuple[]): st
 
 const valueExpressionToAnalyzedLines = (val: ValueExpression, varTable: VarTuple[]): AnalyzedLine[] =>
     isLiteral(val) ? literalExpressionToAnalyzedLines(val, varTable) :
-    isIdentifier(val) ? identifierToAnalyzedLines(val, varTable) :
+    isIdentifier(val) ? identifierToAnalyzedLines(val) :
     isComputationExpression(val) ? computationExpressionToAnalyzedLines(val, varTable) :
     isConditionalExpression(val) ? conditionalExpressionToAnalyzedLines(val, varTable) :
     memberExpressionToAnalyzedLines(val, varTable);
@@ -126,8 +126,8 @@ const computationExpressionToAnalyzedLines = (comp: ComputationExpression, varTa
 const literalExpressionToAnalyzedLines = (l: Literal, varTable: VarTuple[]): AnalyzedLine[] =>
     [{line: l.loc.start.line, type: l.type, name: EMPTY, condition: EMPTY, value: getValOfLiteral(l, varTable)}];
 
-const identifierToAnalyzedLines = (i: Identifier, varTable: VarTuple[]): AnalyzedLine[] =>
-    [{line: i.loc.start.line, type: i.type, name: (varTable.length == 0 || isVarParam(i, varTable) ? i.name : getValOfValExp(getValueExpressionOfIdentifier(i, varTable), varTable)), condition: EMPTY, value: EMPTY}];
+const identifierToAnalyzedLines = (i: Identifier): AnalyzedLine[] =>
+    [{line: i.loc.start.line, type: i.type, name: i.name, condition: EMPTY, value: EMPTY}];
 
 const binaryExpressionToAnalyzedLines = (b: BinaryExpression, varTable: VarTuple[]): AnalyzedLine[] =>
     [{line: b.loc.start.line, type: b.type, name: EMPTY, condition: EMPTY, value: getValOfValExp(b, varTable)}];
