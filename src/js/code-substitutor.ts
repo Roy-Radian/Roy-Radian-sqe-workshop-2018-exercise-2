@@ -188,7 +188,7 @@ const performUpdate = (updateExpression: UpdateExpression, assignable: Assignabl
     if (isIdentifier(assignable)) {
         let oldValue = valueExpressionToValue(assignable, varTable);
         if (isNumber(oldValue)) {
-            updateVarTable(varTable, assignable, {type: "BinaryExpression", operator: op[0], left: assignable, right: literalToLitExp(1), loc: updateExpression.loc}); // Transform the update exp into a binary exp so it would not be calculated more than once
+            updateVarTable(varTable, assignable, createBinaryExpression(op[0], replaceVarInIdentifier(assignable, assignable, varTable), literalToLitExp(1), updateExpression.loc)); // Transform the update exp into a binary exp so it would not be calculated more than once
             return (prefix ? performUpdateOp(oldValue, op) : oldValue);
         }
         return "error: cannot update a non numeric value: " + oldValue;

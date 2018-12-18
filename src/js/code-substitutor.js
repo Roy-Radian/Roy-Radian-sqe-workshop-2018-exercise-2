@@ -124,7 +124,7 @@ var performUpdate = function (updateExpression, assignable, op, prefix, varTable
     if (Expression_Types_1.isIdentifier(assignable)) {
         var oldValue = valueExpressionToValue(assignable, varTable);
         if (isNumber(oldValue)) {
-            updateVarTable(varTable, assignable, { type: "BinaryExpression", operator: op[0], left: assignable, right: Expression_Types_1.literalToLitExp(1), loc: updateExpression.loc }); // Transform the update exp into a binary exp so it would not be calculated more than once
+            updateVarTable(varTable, assignable, Expression_Types_1.createBinaryExpression(op[0], replaceVarInIdentifier(assignable, assignable, varTable), Expression_Types_1.literalToLitExp(1), updateExpression.loc)); // Transform the update exp into a binary exp so it would not be calculated more than once
             return (prefix ? performUpdateOp(oldValue, op) : oldValue);
         }
         return "error: cannot update a non numeric value: " + oldValue;
