@@ -70,16 +70,6 @@ const isString = (x: Value): x is string => (typeof x) === "string";
 const isBoolean = (x: Value) : x is boolean => (typeof x) === "boolean";
 const isArray = (x: Value): x is any[] => x instanceof Array;
 
-const falseLiteral = 'false';
-const trueLiteral = 'true';
-
-const isNumericString = (x: string) : boolean => !isNaN(Number(x));
-const isBooleanString = (x: string): boolean => x.toString().toLowerCase() === falseLiteral || x.toString().toLowerCase() === trueLiteral;
-const stringToValue = (str: string): Value =>
-    isBooleanString(str) ? str ://str === trueLiteral :
-    isNumericString(str) ? Number(str) :
-    str.replace(/"/g, '');
-
 export interface VarTuple {
     name: string;
     value: ValueExpression;
@@ -362,6 +352,30 @@ const substituteAssignmentExpression = (assignmentExpression: AssignmentExpressi
         if (isVarParam(left, varTable)) {
             return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(newValue, varTable), varTable)];
         }
+    } else {
+        return substituteArrayAssignment(assignmentExpression, left, varTable);
+    }
+    return NO_LINES;
+}
+
+const substituteArrayAssignment = (assignmentExpression: AssignmentExpression, left: MemberExpression, varTable: VarTuple[]): ValuedLine[] => {
+    let obj = left.object;
+    if (isIdentifier(obj)) {
+        let oldValue: ValueExpression = getValueExpressionOfIdentifier(obj, varTable);
+        while (!isArrayExpression(oldValue)) // If it's an array pointer
+            oldValue = getValueExpressionOfIdentifier(obj, varTable);
+        if (isArrayExpression(oldValue)) {
+            let i = valueExpressionToValue(left.property, varTable);
+            if (isNumber(i)) {
+                let newElements: ValueExpression[] =
+                    oldValue.elements.map((v: ValueExpression, index: number): ValueExpression =>
+                        index == i ? assignmentExpression.right : v);
+                let newValue: ArrayExpression = createArrayExpression(newElements, left.loc);
+                updateVarTable(varTable, obj, newValue);
+                if (isVarParam(obj, varTable))
+                    return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(newValue, varTable), varTable)];
+            }
+        }
     }
     return NO_LINES;
 }
@@ -388,11 +402,3 @@ const substituteProgram = (program: Program, varTable: VarTuple[]): ValuedLine[]
 
 
 export {parseParams, substituteProgram};
-
-// TODO: Should I support logical expressions?
-/* TODO: should I support arrays? If so I need to:
-*          * Support ArrayExpression as a value expression
-*          * Somehow support array values in input vector
-*          * Support arrays in value calculations: The type of all the functions will remain Value (and not Value[]) and I will force getValueOfIdentifier to return Value.
-*               I will create a new function getValueOfArrayIdentifier which will return Value as well.
-*/

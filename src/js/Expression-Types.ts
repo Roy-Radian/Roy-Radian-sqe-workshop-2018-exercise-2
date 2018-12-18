@@ -134,10 +134,10 @@ export const isVariableDeclaration = (x: any): x is VariableDeclaration => isWit
 
 export type Assignable = Identifier | MemberExpression;
 
-type AssignmentOperator = '=' | '+=' | '-=' | '*=' | '/=';
+//type AssignmentOperator = '=' | '+=' | '-=' | '*=' | '/=';
 export interface AssignmentExpression {
     type: 'AssignmentExpression';
-    operator: AssignmentOperator;
+    operator: string;
     left: Assignable;
     right: ValueExpression;
     loc: Location;

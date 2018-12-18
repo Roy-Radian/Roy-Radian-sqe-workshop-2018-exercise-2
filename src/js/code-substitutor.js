@@ -8,15 +8,6 @@ var isNumber = function (x) { return (typeof x) === "number"; };
 var isString = function (x) { return (typeof x) === "string"; };
 var isBoolean = function (x) { return (typeof x) === "boolean"; };
 var isArray = function (x) { return x instanceof Array; };
-var falseLiteral = 'false';
-var trueLiteral = 'true';
-var isNumericString = function (x) { return !isNaN(Number(x)); };
-var isBooleanString = function (x) { return x.toString().toLowerCase() === falseLiteral || x.toString().toLowerCase() === trueLiteral; };
-var stringToValue = function (str) {
-    return isBooleanString(str) ? str : //str === trueLiteral :
-        isNumericString(str) ? Number(str) :
-            str.replace(/"/g, '');
-};
 exports.isVarParam = function (id, varTable) {
     return varTable.length == 0 ? false :
         varTable[0].name == id.name ? varTable[0].isParam :
@@ -277,6 +268,30 @@ var substituteAssignmentExpression = function (assignmentExpression, varTable) {
             return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(newValue, varTable), varTable)];
         }
     }
+    else {
+        return substituteArrayAssignment(assignmentExpression, left, varTable);
+    }
+    return NO_LINES;
+};
+var substituteArrayAssignment = function (assignmentExpression, left, varTable) {
+    var obj = left.object;
+    if (Expression_Types_1.isIdentifier(obj)) {
+        var oldValue = exports.getValueExpressionOfIdentifier(obj, varTable);
+        while (!Expression_Types_1.isArrayExpression(oldValue)) // If it's an array pointer
+            oldValue = exports.getValueExpressionOfIdentifier(obj, varTable);
+        if (Expression_Types_1.isArrayExpression(oldValue)) {
+            var i_1 = valueExpressionToValue(left.property, varTable);
+            if (isNumber(i_1)) {
+                var newElements = oldValue.elements.map(function (v, index) {
+                    return index == i_1 ? assignmentExpression.right : v;
+                });
+                var newValue = Expression_Types_1.createArrayExpression(newElements, left.loc);
+                updateVarTable(varTable, obj, newValue);
+                if (exports.isVarParam(obj, varTable))
+                    return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(newValue, varTable), varTable)];
+            }
+        }
+    }
     return NO_LINES;
 };
 var addAssignmentToVarTable = function (assignable, op, value, varTable) {
@@ -299,10 +314,3 @@ var substituteProgram = function (program, varTable) {
     return program.body.length > 0 ? program.body.map(getSubstituteExpFunc(varTable)).reduce(concatValuedLines) : [];
 };
 exports.substituteProgram = substituteProgram;
-// TODO: Should I support logical expressions?
-/* TODO: should I support arrays? If so I need to:
-*          * Support ArrayExpression as a value expression
-*          * Somehow support array values in input vector
-*          * Support arrays in value calculations: The type of all the functions will remain Value (and not Value[]) and I will force getValueOfIdentifier to return Value.
-*               I will create a new function getValueOfArrayIdentifier which will return Value as well.
-*/ 
