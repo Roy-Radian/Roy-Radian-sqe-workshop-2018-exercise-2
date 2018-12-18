@@ -7,11 +7,15 @@ interface CodePostition {
     line: number;
     column: number;
 }
+const getBlankPosition = (): CodePostition =>
+    ({line: -1, column: -1});
 
-interface Location {
+export interface Location {
     start: CodePostition;
     end: CodePostition;
 }
+export const getBlankLocation = (): Location =>
+    ({start: getBlankPosition(), end: getBlankPosition()});
 
 export interface Program {
     type: 'Program';
@@ -143,6 +147,8 @@ export interface AssignmentExpression {
     loc: Location;
 }
 export const isAssignmentExpression = (x: any): x is AssignmentExpression => isWithType(x) ? x.type === 'AssignmentExpression' : false;
+export const createAssignmentExpression = (operator: string, left: Assignable, right: ValueExpression, loc: Location): AssignmentExpression =>
+    ({type: 'AssignmentExpression', operator: operator, left: left, right: right, loc: loc});
 
 export interface UpdateExpression {
     type: 'UpdateExpression';

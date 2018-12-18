@@ -44,8 +44,8 @@ var getValueOfComputationExpression = function (comp, varTable) {
     return Expression_Types_1.isBinaryExpression(comp) ? getValueOfBinaryExpression(comp, varTable) :
         Expression_Types_1.isLogicalExpression(comp) ? getValueOfLogicalExpression(comp, varTable) :
             Expression_Types_1.isUnaryExpression(comp) ? getValueOfUnaryExpression(comp, varTable) :
-                getValueOfUpdateExpression(comp, varTable);
-};
+                "unsupported: update expression";
+}; //getValueOfUpdateExpression(comp, varTable);
 var getValueOfConditionalExpression = function (cond, varTable) {
     return valueExpressionToValue(cond.test, varTable) ? valueExpressionToValue(cond.consequent, varTable) :
         valueExpressionToValue(cond.alternate, varTable);
@@ -116,36 +116,34 @@ var performUnaryOp = function (val, op) {
         op === '-' ? -val :
             val;
 };
-var getValueOfUpdateExpression = function (updateExpression, varTable) {
-    return performUpdate(updateExpression, updateExpression.argument, updateExpression.operator, updateExpression.prefix, varTable);
-};
-var performUpdate = function (updateExpression, assignable, op, prefix, varTable) {
-    if (Expression_Types_1.isIdentifier(assignable)) {
-        var oldValue = valueExpressionToValue(assignable, varTable);
+/*const getValueOfUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): Value =>
+    performUpdate(updateExpression, updateExpression.argument, updateExpression.operator, updateExpression.prefix, varTable);*/
+/*const performUpdate = (updateExpression: UpdateExpression, assignable: Assignable, op: string, prefix: boolean, varTable: VarTuple[]): Value => { // Mutations due to changing varTable
+    if (isIdentifier(assignable)) {
+        let oldValue = valueExpressionToValue(assignable, varTable);
         if (isNumber(oldValue)) {
-            var newValue = performUpdateOp(oldValue, op);
-            updateVarTable(varTable, assignable, Expression_Types_1.createBinaryExpression(op[0], replaceVarInIdentifier(assignable, assignable, varTable), Expression_Types_1.createAtomicLiteralExpression(1), updateExpression.loc)); // Transform the update exp into a binary exp so it would not be calculated more than once
+            let newValue = performUpdateOp(oldValue, op);
+            updateVarTable(varTable, assignable, createBinaryExpression(op[0], replaceVarInIdentifier(assignable, assignable, varTable), createAtomicLiteralExpression(1), updateExpression.loc)); // Transform the update exp into a binary exp so it would not be calculated more than once
             return (prefix ? newValue : oldValue);
         }
         return "error: cannot update a non numeric value: " + oldValue;
     }
     else {
-        var arr = assignable.object;
-        var i_1 = valueExpressionToValue(assignable.property, varTable);
-        if (isNumber(i_1) && Expression_Types_1.isIdentifier(arr)) {
-            var oldValue = replaceVarInValueExpression(arr, exports.getValueExpressionOfIdentifier(arr, varTable), varTable);
-            if (Expression_Types_1.isArrayExpression(oldValue)) {
-                var newElements = oldValue.elements.map(function (v, index) {
-                    return index == i_1 ? Expression_Types_1.createBinaryExpression(updateExpression.operator[0], v, Expression_Types_1.createAtomicLiteralExpression(1), updateExpression.loc) : v;
-                });
-                var newArr = Expression_Types_1.createArrayExpression(newElements, arr.loc);
+        let arr = assignable.object;
+        let i = valueExpressionToValue(assignable.property, varTable);
+        if (isNumber(i) && isIdentifier(arr)) {
+            let oldValue = replaceVarInValueExpression(arr, getValueExpressionOfIdentifier(arr, varTable), varTable);
+            if (isArrayExpression(oldValue)) {
+                let newElements = oldValue.elements.map((v: ValueExpression, index: number): ValueExpression =>
+                    index == i ? createBinaryExpression(updateExpression.operator[0], v, createAtomicLiteralExpression(1), updateExpression.loc) : v);
+                let newArr = createArrayExpression(newElements, arr.loc);
                 updateVarTable(varTable, arr, newArr);
-                return (prefix) ? valueExpressionToValue(newElements[i_1], varTable) : valueExpressionToValue(oldValue.elements[i_1], varTable);
+                return (prefix) ? valueExpressionToValue(newElements[i], varTable) : valueExpressionToValue(oldValue.elements[i], varTable);
             }
         }
         return "error: not a valid array";
     }
-};
+}*/
 var updateVarTable = function (varTable, id, newValue) {
     for (var i = 0; i < varTable.length; i++) {
         if (varTable[i].name == id.name) {
@@ -231,22 +229,22 @@ var substituteFunctionDeclaration = function (func, varTable) {
     return [analyzedLineToValuedLine(func, 0, varTable)].concat(getValuedLinesOfBody(func.body, varTable));
 };
 var substituteValueExpression = function (exp, varTable) {
-    return Expression_Types_1.isUpdateExpression(exp) ? substituteUpdateExpression(exp, varTable) : NO_LINES;
-};
-var substituteUpdateExpression = function (updateExpression, varTable) {
-    var arg = updateExpression.argument;
-    var ret = [analyzedLineToValuedLine(updateExpression, 0, varTable)];
-    if (Expression_Types_1.isIdentifier(arg)) {
-        if (exports.isVarParam(arg, varTable))
+    return NO_LINES;
+}; //isUpdateExpression(exp) ? substituteUpdateExpression(exp, varTable) : NO_LINES;
+/*const substituteUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): ValuedLine[] => { // Mutation due to chancing varTable
+    let arg = updateExpression.argument;
+    let ret = [analyzedLineToValuedLine(updateExpression, 0, varTable)];
+    if (isIdentifier(arg)) {
+        if (isVarParam(arg, varTable))
             return ret;
     }
     else {
-        var obj = arg.object;
-        if (Expression_Types_1.isIdentifier(obj) && exports.isVarParam(obj, varTable))
+        let obj = arg.object;
+        if (isIdentifier(obj) && isVarParam(obj, varTable))
             return ret;
     }
     return NO_LINES;
-};
+}*/
 var getValuedLinesOfBody = function (body, varTable) {
     return Expression_Types_1.isBody(body) ?
         (Expression_Types_1.isExpression(body) ? substituteExpression(body, copyArr(varTable)) :
@@ -284,38 +282,41 @@ var substituteVariableDeclaration = function (varDeclaration, varTable) {
     return NO_LINES;
 };
 var substituteAssignmentExpression = function (assignmentExpression, varTable) {
-    var left = assignmentExpression.left;
-    if (Expression_Types_1.isIdentifier(left)) {
-        var newValue = replaceVarInValueExpression(left, assignmentExpression.right, varTable);
-        updateVarTable(varTable, left, newValue);
-        var ret = [analyzedLineToValuedLine(assignmentExpression, 0, varTable)];
-        if (exports.isVarParam(left, varTable)) {
-            return ret;
-        }
-    }
-    else {
-        return substituteArrayAssignment(assignmentExpression, left, varTable);
-    }
-    return NO_LINES;
+    return assignmentExpression.operator != '=' ?
+        substituteAssignmentExpression(Expression_Types_1.createAssignmentExpression('=', assignmentExpression.left, Expression_Types_1.createBinaryExpression(assignmentExpression.operator[0], assignmentExpression.left, assignmentExpression.right, assignmentExpression.loc), assignmentExpression.loc), varTable) :
+        substituteAssginmentIdOrArr(assignmentExpression, assignmentExpression.left, varTable);
+};
+var substituteAssginmentIdOrArr = function (assignmentExpression, left, varTable) {
+    return Expression_Types_1.isIdentifier(left) ? substituteIdentifierAssignment(assignmentExpression, left, varTable) :
+        substituteArrayAssignment(assignmentExpression, left, varTable);
+};
+var substituteIdentifierAssignment = function (assignmentExpression, left, varTable) {
+    var newValue = replaceVarInValueExpression(left, assignmentExpression.right, varTable);
+    updateVarTable(varTable, left, newValue);
+    return (exports.isVarParam(left, varTable) ? [analyzedLineToValuedLine(assignmentExpression, 0, varTable)] : NO_LINES);
+};
+var replaceElement = function (arr, index, newElement) {
+    return Expression_Types_1.createArrayExpression(arr.elements.map(function (v, curr) { return curr == index ? newElement : v; }), arr.loc);
 };
 var substituteArrayAssignment = function (assignmentExpression, left, varTable) {
-    var obj = left.object;
-    if (Expression_Types_1.isIdentifier(obj)) {
-        var oldValue = replaceVarInValueExpression(obj, exports.getValueExpressionOfIdentifier(obj, varTable), varTable);
-        if (Expression_Types_1.isArrayExpression(oldValue)) {
-            var i_2 = valueExpressionToValue(left.property, varTable);
-            if (isNumber(i_2)) {
-                var newElements = oldValue.elements.map(function (v, index) {
-                    return index == i_2 ? assignmentExpression.right : v;
-                });
-                var newValue = Expression_Types_1.createArrayExpression(newElements, left.loc);
-                updateVarTable(varTable, obj, newValue);
-                if (exports.isVarParam(obj, varTable))
-                    return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(newValue, varTable), varTable)];
-            }
-        }
+    var id = left.object;
+    if (Expression_Types_1.isArrayExpression(id))
+        return NO_LINES;
+    else {
+        var arr = extractArrayExpression(left.object, varTable);
+        var index = extractNumber(valueExpressionToValue(left.property, varTable));
+        var newArr = replaceElement(arr, index, replaceVarInValueExpression(id, assignmentExpression.right, varTable));
+        updateVarTable(varTable, id, newArr);
+        return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(newArr, varTable), varTable)];
     }
-    return NO_LINES;
+};
+var extractArrayExpression = function (arr, varTable) {
+    return Expression_Types_1.isArrayExpression(arr) ? arr :
+        Expression_Types_1.isIdentifier(arr) ? extractArrayExpression(exports.getValueExpressionOfIdentifier(arr, varTable), varTable) :
+            Expression_Types_1.createArrayExpression([], Expression_Types_1.getBlankLocation());
+}; // Create an empty array
+var extractNumber = function (v) {
+    return isNumber(v) ? v : 0;
 };
 var substituteReturnStatement = function (returnStatement, varTable) {
     return [analyzedLineToValuedLine(returnStatement, valueExpressionToValue(returnStatement.argument, varTable), varTable)];

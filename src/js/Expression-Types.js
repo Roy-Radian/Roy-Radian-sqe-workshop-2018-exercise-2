@@ -1,6 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var isWithType = function (x) { return x != null && x.hasOwnProperty('type'); };
+var getBlankPosition = function () {
+    return ({ line: -1, column: -1 });
+};
+exports.getBlankLocation = function () {
+    return ({ start: getBlankPosition(), end: getBlankPosition() });
+};
 exports.isProgram = function (x) { return isWithType(x) ? x.type == 'Program' : false; };
 exports.isLoopStatement = function (x) { return exports.isWhileStatement(x) || exports.isDoWhileStatement(x) || exports.isForStatement(x); };
 exports.isAtomicExpression = function (x) {
@@ -36,6 +42,9 @@ exports.isBody = function (x) { return exports.isBlockStatement(x) || exports.is
 exports.isFunctionDeclaration = function (x) { return isWithType(x) ? x.type === 'FunctionDeclaration' : false; };
 exports.isVariableDeclaration = function (x) { return isWithType(x) ? x.type === 'VariableDeclaration' : false; };
 exports.isAssignmentExpression = function (x) { return isWithType(x) ? x.type === 'AssignmentExpression' : false; };
+exports.createAssignmentExpression = function (operator, left, right, loc) {
+    return ({ type: 'AssignmentExpression', operator: operator, left: left, right: right, loc: loc });
+};
 exports.isUpdateExpression = function (x) { return isWithType(x) ? x.type === 'UpdateExpression' : false; };
 exports.isLogicalExpression = function (x) { return isWithType(x) ? x.type === 'LogicalExpression' : false; };
 exports.createLogicalExpression = function (operator, left, right, loc) {

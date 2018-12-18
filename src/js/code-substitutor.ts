@@ -57,7 +57,7 @@ import {
     isLogicalExpression,
     LogicalExpression,
     createLogicalExpression,
-    isBlockStatement
+    isBlockStatement, createAssignmentExpression, isMemberExpression, getBlankLocation
 } from "./Expression-Types";
 import {AnalyzedLine, getFirstAnalyzedLine, getValOfValExp} from "./expression-analyzer";
 import {parseCode} from "./code-analyzer";
@@ -111,7 +111,7 @@ const getValueOfComputationExpression = (comp: ComputationExpression, varTable: 
     isBinaryExpression(comp) ? getValueOfBinaryExpression(comp, varTable) :
     isLogicalExpression(comp) ? getValueOfLogicalExpression(comp, varTable) :
     isUnaryExpression(comp) ? getValueOfUnaryExpression(comp, varTable) :
-    getValueOfUpdateExpression(comp, varTable);
+    "unsupported: update expression"; //getValueOfUpdateExpression(comp, varTable);
 
 const getValueOfConditionalExpression = (cond: ConditionalExpression, varTable: VarTuple[]): Value =>
     valueExpressionToValue(cond.test, varTable) ? valueExpressionToValue(cond.consequent, varTable) :
@@ -183,10 +183,10 @@ const performUnaryOp = (val: Value, op: string): Value =>
     op === '-' ? -val :
     val;
 
-const getValueOfUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): Value =>
-    performUpdate(updateExpression, updateExpression.argument, updateExpression.operator, updateExpression.prefix, varTable);
+/*const getValueOfUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): Value =>
+    performUpdate(updateExpression, updateExpression.argument, updateExpression.operator, updateExpression.prefix, varTable);*/
 
-const performUpdate = (updateExpression: UpdateExpression, assignable: Assignable, op: string, prefix: boolean, varTable: VarTuple[]): Value => { // Mutations due to changing varTable
+/*const performUpdate = (updateExpression: UpdateExpression, assignable: Assignable, op: string, prefix: boolean, varTable: VarTuple[]): Value => { // Mutations due to changing varTable
     if (isIdentifier(assignable)) {
         let oldValue = valueExpressionToValue(assignable, varTable);
         if (isNumber(oldValue)) {
@@ -211,7 +211,7 @@ const performUpdate = (updateExpression: UpdateExpression, assignable: Assignabl
         }
         return "error: not a valid array";
     }
-}
+}*/
 
 const updateVarTable = (varTable: VarTuple[], id: Identifier, newValue: ValueExpression): void => { // Mutations due to changing varTable
     for (let i = 0; i < varTable.length; i++) {
@@ -313,9 +313,9 @@ const substituteFunctionDeclaration = (func: FunctionDeclaration, varTable: VarT
     [analyzedLineToValuedLine(func, 0, varTable)].concat(getValuedLinesOfBody(func.body, varTable));
 
 const substituteValueExpression = (exp: ValueExpression, varTable: VarTuple[]): ValuedLine[] =>
-    isUpdateExpression(exp) ? substituteUpdateExpression(exp, varTable) : NO_LINES;
+    NO_LINES; //isUpdateExpression(exp) ? substituteUpdateExpression(exp, varTable) : NO_LINES;
 
-const substituteUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): ValuedLine[] => { // Mutation due to chancing varTable
+/*const substituteUpdateExpression = (updateExpression: UpdateExpression, varTable: VarTuple[]): ValuedLine[] => { // Mutation due to chancing varTable
     let arg = updateExpression.argument;
     let ret = [analyzedLineToValuedLine(updateExpression, 0, varTable)];
     if (isIdentifier(arg)) {
@@ -328,7 +328,7 @@ const substituteUpdateExpression = (updateExpression: UpdateExpression, varTable
             return ret;
     }
     return NO_LINES;
-}
+}*/
 
 const getValuedLinesOfBody = (body: Body | null, varTable: VarTuple[]): ValuedLine[] =>
     isBody(body) ?
@@ -367,40 +367,46 @@ const substituteVariableDeclaration = (varDeclaration: VariableDeclaration, varT
     return NO_LINES;
 }
 
-const substituteAssignmentExpression = (assignmentExpression: AssignmentExpression, varTable: VarTuple[]): ValuedLine[] => { // Mutation due to changing varTable
-    let left = assignmentExpression.left;
-    if (isIdentifier(left)) {
-        let newValue: ValueExpression = replaceVarInValueExpression(left, assignmentExpression.right, varTable);
-        updateVarTable(varTable, left, newValue);
-        let ret = [analyzedLineToValuedLine(assignmentExpression, 0, varTable)];
-        if (isVarParam(left, varTable)) {
-            return ret;
-        }
-    } else {
-        return substituteArrayAssignment(assignmentExpression, left, varTable);
-    }
-    return NO_LINES;
+const substituteAssignmentExpression = (assignmentExpression: AssignmentExpression, varTable: VarTuple[]): ValuedLine[] => // Mutation due to changing varTable
+    assignmentExpression.operator != '=' ?
+        substituteAssignmentExpression(createAssignmentExpression('=', assignmentExpression.left,
+            createBinaryExpression(assignmentExpression.operator[0], assignmentExpression.left, assignmentExpression.right,
+                assignmentExpression.loc), assignmentExpression.loc), varTable) :
+    substituteAssginmentIdOrArr(assignmentExpression, assignmentExpression.left, varTable);
+
+const substituteAssginmentIdOrArr = (assignmentExpression: AssignmentExpression, left: Assignable, varTable: VarTuple[]): ValuedLine[] =>
+    isIdentifier(left) ? substituteIdentifierAssignment(assignmentExpression, left, varTable) :
+    substituteArrayAssignment(assignmentExpression, left, varTable);
+
+const substituteIdentifierAssignment = (assignmentExpression: AssignmentExpression, left: Identifier, varTable: VarTuple[]): ValuedLine[] => {
+    let newValue: ValueExpression = replaceVarInValueExpression(left, assignmentExpression.right, varTable);
+    updateVarTable(varTable, left, newValue);
+    return (isVarParam(left, varTable) ? [analyzedLineToValuedLine(assignmentExpression, 0, varTable)] : NO_LINES);
 }
 
+const replaceElement = (arr: ArrayExpression, index: number, newElement: ValueExpression): ArrayExpression =>
+    createArrayExpression(arr.elements.map((v: ValueExpression, curr: number): ValueExpression => curr == index ? newElement : v), arr.loc);
+
 const substituteArrayAssignment = (assignmentExpression: AssignmentExpression, left: MemberExpression, varTable: VarTuple[]): ValuedLine[] => {
-    let obj = left.object;
-    if (isIdentifier(obj)) {
-        let oldValue: ValueExpression = replaceVarInValueExpression(obj, getValueExpressionOfIdentifier(obj, varTable), varTable);
-        if (isArrayExpression(oldValue)) {
-            let i = valueExpressionToValue(left.property, varTable);
-            if (isNumber(i)) {
-                let newElements: ValueExpression[] =
-                    oldValue.elements.map((v: ValueExpression, index: number): ValueExpression =>
-                        index == i ? assignmentExpression.right : v);
-                let newValue: ArrayExpression = createArrayExpression(newElements, left.loc);
-                updateVarTable(varTable, obj, newValue);
-                if (isVarParam(obj, varTable))
-                    return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(newValue, varTable), varTable)];
-            }
-        }
+    let id = left.object;
+    if (isArrayExpression(id))
+        return NO_LINES;
+    else {
+        let arr: ArrayExpression = extractArrayExpression(left.object, varTable);
+        let index = extractNumber(valueExpressionToValue(left.property, varTable));
+        let newArr = replaceElement(arr, index, replaceVarInValueExpression(id, assignmentExpression.right, varTable));
+        updateVarTable(varTable, id, newArr);
+        return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(newArr, varTable), varTable)];
     }
-    return NO_LINES;
 }
+
+const extractArrayExpression = (arr: ValueExpression, varTable: VarTuple[]): ArrayExpression =>
+    isArrayExpression(arr) ? arr :
+    isIdentifier(arr) ? extractArrayExpression(getValueExpressionOfIdentifier(arr, varTable), varTable) :
+    createArrayExpression([], getBlankLocation()); // Create an empty array
+
+const extractNumber = (v: Value): number =>
+    isNumber(v) ? v : 0;
 
 const substituteReturnStatement = (returnStatement: ReturnStatement, varTable: VarTuple[]): ValuedLine[] =>
     [analyzedLineToValuedLine(returnStatement, valueExpressionToValue(returnStatement.argument, varTable), varTable)];
