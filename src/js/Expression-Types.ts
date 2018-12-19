@@ -3,16 +3,16 @@ interface WithType {
 }
 const isWithType = (x: object): x is WithType => x != null && x.hasOwnProperty('type');
 
-interface CodePostition {
+interface CodePosition {
     line: number;
     column: number;
 }
-const getBlankPosition = (): CodePostition =>
+const getBlankPosition = (): CodePosition =>
     ({line: -1, column: -1});
 
 export interface Location {
-    start: CodePostition;
-    end: CodePostition;
+    start: CodePosition;
+    end: CodePosition;
 }
 export const getBlankLocation = (): Location =>
     ({start: getBlankPosition(), end: getBlankPosition()});
