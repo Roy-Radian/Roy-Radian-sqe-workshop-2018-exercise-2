@@ -181,7 +181,6 @@ export const createConditionalExpression = (test: ValueExpression, consequent: V
     ({type: 'ConditionalExpression', test: test, consequent: consequent, alternate: alternate, loc: loc});
 
 export type ArrayObject = Identifier | ArrayExpression;
-export const isArrayObject = (x: any): x is ArrayObject => isIdentifier(x) || isArrayExpression(x);
 export interface MemberExpression {
     type: 'MemberExpression';
     computed: boolean;

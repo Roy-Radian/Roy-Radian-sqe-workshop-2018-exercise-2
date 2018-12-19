@@ -53,7 +53,6 @@ import {
     ArrayObject,
     isArrayExpression,
     createArrayExpression,
-    isArrayObject,
     isLogicalExpression,
     LogicalExpression,
     createLogicalExpression,
@@ -99,8 +98,7 @@ const getValueOfLiteral = (literal: Literal, varTable: VarTuple[]): Value =>
     getValueOfArrayExpression(literal, varTable);
 
 const getValueOfArrayExpression = (arr: ArrayExpression, varTable: VarTuple[]): Value =>
-    arr.elements.length > 0 ? arr.elements.map((v: ValueExpression): Value => valueExpressionToValue(v, varTable)) :
-        [];
+    arr.elements.map((v: ValueExpression): Value => valueExpressionToValue(v, varTable));
 
 export const getValueExpressionOfIdentifier = (id: Identifier, varTable: VarTuple[]): ValueExpression =>
     //varTable.length == 0 ? null :
@@ -152,9 +150,9 @@ const isNumericOp = (op: string): boolean =>
 
 const performBooleanEqBinaryOp = (left: Value, right: Value, op: string): Value =>
     op === '>' ? left > right :
-    op === '<=' ? left <= right :
+    op === '>=' ? left >= right :
     op === '<' ? left < right :
-    op === '<=' ? left < right :
+    op === '<=' ? left <= right :
     op === '==' ? left == right :
     left === right;
 
@@ -281,12 +279,8 @@ const replaceVarInMemberObject = (id: Identifier, obj: ArrayObject, varTable: Va
     isArrayExpression(obj) ? (obj.elements.length > 0 ?
         createArrayExpression(obj.elements.map((v: ValueExpression): ValueExpression =>
             replaceVarInValueExpression(id, v, varTable)), obj.loc) :
-        createArrayExpression([], obj.loc)):
-    valueExpressionToArrObject(replaceVarInIdentifier(id, obj, varTable));
-
-const valueExpressionToArrObject = (valueExpression: ValueExpression): ArrayObject =>
-    isArrayObject(valueExpression) ? valueExpression :
-    createArrayExpression([], valueExpression.loc); // Error: not an array
+    obj):
+    replaceVarInMemberObject(id, extractArrayExpression(obj, varTable), varTable);
 
 const replaceVarsInConditionalExpression = (id: Identifier, cond: ConditionalExpression, varTable: VarTuple[]): ValueExpression =>
     createConditionalExpression(replaceVarInValueExpression(id, cond.test, varTable),
@@ -380,16 +374,20 @@ const substituteAssignmentExpression = (assignmentExpression: AssignmentExpressi
         substituteAssignmentExpression(createAssignmentExpression('=', assignmentExpression.left,
             createBinaryExpression(assignmentExpression.operator[0], assignmentExpression.left, assignmentExpression.right,
                 assignmentExpression.loc), assignmentExpression.loc), varTable) :
-    substituteAssginmentIdOrArr(assignmentExpression, assignmentExpression.left, varTable);
+    substituteAssignmentIdOrArr(assignmentExpression, assignmentExpression.left, varTable);
 
-const substituteAssginmentIdOrArr = (assignmentExpression: AssignmentExpression, left: Assignable, varTable: VarTuple[]): ValuedLine[] =>
+const substituteAssignmentIdOrArr = (assignmentExpression: AssignmentExpression, left: Assignable, varTable: VarTuple[]): ValuedLine[] =>
     isIdentifier(left) ? substituteIdentifierAssignment(assignmentExpression, left, varTable) :
     substituteArrayAssignment(assignmentExpression, left, varTable);
 
 const substituteIdentifierAssignment = (assignmentExpression: AssignmentExpression, left: Identifier, varTable: VarTuple[]): ValuedLine[] => {
-    let newValue: ValueExpression = replaceVarInValueExpression(left, assignmentExpression.right, varTable);
-    updateVarTable(varTable, left, newValue);
-    return (isVarParam(left, varTable) ? [analyzedLineToValuedLine(assignmentExpression, 0, varTable)] : NO_LINES);
+    let right = assignmentExpression.right;
+    if (!isUpdateExpression(right)) {
+        let newValue: ValueExpression = replaceVarInValueExpression(left, right, varTable);
+        updateVarTable(varTable, left, newValue);
+        return (isVarParam(left, varTable) ? [analyzedLineToValuedLine(assignmentExpression, 0, varTable)] : NO_LINES);
+    }
+    return NO_LINES;
 }
 
 const replaceElement = (arr: ArrayExpression, index: number, newElement: ValueExpression): ArrayExpression =>
@@ -402,9 +400,13 @@ const substituteArrayAssignment = (assignmentExpression: AssignmentExpression, l
     else {
         let arr: ArrayExpression = extractArrayExpression(left.object, varTable);
         let index = extractNumber(valueExpressionToValue(left.property, varTable));
-        let newArr = replaceElement(arr, index, replaceVarInValueExpression(id, assignmentExpression.right, varTable));
-        updateVarTable(varTable, id, newArr);
-        return [analyzedLineToValuedLine(assignmentExpression, valueExpressionToValue(newArr, varTable), varTable)];
+        let right = assignmentExpression.right;
+        //if (!isUpdateExpression(right)) {
+            let newArr = replaceElement(arr, index, replaceVarInValueExpression(id, right, varTable));
+            updateVarTable(varTable, id, newArr);
+            return [analyzedLineToValuedLine(assignmentExpression, 0, varTable)];
+        //}
+        //return NO_LINES;
     }
 }
 

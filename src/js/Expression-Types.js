@@ -54,7 +54,6 @@ exports.isConditionalExpression = function (x) { return isWithType(x) ? x.type =
 exports.createConditionalExpression = function (test, consequent, alternate, loc) {
     return ({ type: 'ConditionalExpression', test: test, consequent: consequent, alternate: alternate, loc: loc });
 };
-exports.isArrayObject = function (x) { return exports.isIdentifier(x) || exports.isArrayExpression(x); };
 exports.isMemberExpression = function (x) { return isWithType(x) ? x.type === 'MemberExpression' : false; };
 exports.createMemberExpression = function (computed, object, property, loc) {
     return ({ type: 'MemberExpression', computed: computed, object: object, property: property, loc: loc });
