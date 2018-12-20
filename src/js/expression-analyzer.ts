@@ -83,10 +83,13 @@ const getValOfInit = (init: ValueExpression | null, varTable: VarTuple[]): strin
 
 export const getValOfValExp = (v: ValueExpression, varTable: VarTuple[]): string =>
     isLiteral(v) ? getValOfLiteral(v, varTable) :
-    isIdentifier(v) ? (varTable.length == 0 || isVarParam(v, varTable) ? v.name : getValOfValExp(getValueExpressionOfIdentifier(v, varTable), varTable))  :
+    isIdentifier(v) ? getValOfIdentifier(v, varTable) :
     isComputationExpression(v) ? getValOfComputationExpression(v, varTable) :
     isConditionalExpression(v) ? getValOfConditionalExpression(v, varTable) :
     getValOfMemberExpression(v, varTable);
+
+const getValOfIdentifier = (id: Identifier, varTable: VarTuple[]): string =>
+    (varTable.length == 0 || isVarParam(id, varTable) ? id.name : getValOfValExp(getValueExpressionOfIdentifier(id, varTable), varTable));
 
 const getValOfLiteral = (literal: Literal, varTable: VarTuple[]): string =>
     isAtomicLiteral(literal) ? literal.raw :
@@ -198,11 +201,14 @@ export const getAllAnalyzedLines = (exp: Expression, varTable: VarTuple[]): Anal
 
 export const getFirstAnalyzedLine = (exp: Expression, varTable: VarTuple[]): AnalyzedLine =>
     isAtomicExpression(exp) ?  getAnalyzedLinesFromAtomicExpression(exp, varTable)[0] :
-    isExpressionStatement(exp) ? getFirstAnalyzedLine(exp.expression, varTable) :
-    isValueExpression(exp) ? valueExpressionToAnalyzedLines(exp, varTable)[0] :
-    isFunctionDeclaration(exp) ? functionDeclarationToAnalyzedLines(exp)[0] :
-    isLoopStatement(exp) ? getFirstAnalyzedLineFromLoop(exp, varTable) :
-    ifStatementToAnalyzedLines(exp, varTable)[0];
+    getFirstAnalyzedLineFromCompoundExpression(exp, varTable);
+
+const getFirstAnalyzedLineFromCompoundExpression = (comp: CompoundExpression, varTable: VarTuple[]): AnalyzedLine =>
+    isExpressionStatement(comp) ? getFirstAnalyzedLine(comp.expression, varTable) :
+    isValueExpression(comp) ? valueExpressionToAnalyzedLines(comp, varTable)[0] :
+    isFunctionDeclaration(comp) ? functionDeclarationToAnalyzedLines(comp)[0] :
+    isLoopStatement(comp) ? getFirstAnalyzedLineFromLoop(comp, varTable) :
+    ifStatementToAnalyzedLines(comp, varTable)[0];
 
 const getFirstAnalyzedLineFromLoop = (loop: LoopStatement, varTable: VarTuple[]): AnalyzedLine =>
     isWhileStatement(loop) ? whileStatementToAnalyzedLines(loop, varTable)[0] :

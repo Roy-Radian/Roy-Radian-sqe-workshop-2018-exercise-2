@@ -67,7 +67,6 @@ interface ValueArray extends Array<Value> {};
 const isNumber = (x: Value): x is number => (typeof x) === "number";
 const isString = (x: Value): x is string => (typeof x) === "string";
 const isBoolean = (x: Value) : x is boolean => (typeof x) === "boolean";
-const isArray = (x: Value): x is any[] => x instanceof Array;
 
 export interface VarTuple {
     name: string;
@@ -139,22 +138,26 @@ const performBinaryOp = (left: Value, right: Value, op: string): Value =>
     performBooleanEqBinaryOp(left, right, op);
 
 const performAddition = (left: Value, right: Value): Value =>
-    isArray(left) || isArray(right) ? "Undefined operation on arrays" :
+    isNumber(left) && isNumber(right) ? left + right :
     isString(left) ? left + right :
     isString(right) ? left + right :
-    isBoolean(left) || isBoolean(right) ? "undefined operation + between booleans" :
-    left + right;
+    "undefined operation: " + left + " + " + right;
 
 const isNumericOp = (op: string): boolean =>
    ['-', '*', '/', '**'].indexOf(op) != -1;
 
 const performBooleanEqBinaryOp = (left: Value, right: Value, op: string): Value =>
+    op === '==' ? left == right :
+    op === '===' ? left === right :
+    op === '!=' ? left != right :
+    op === '!==' ? left !== right :
+    performBooleanInequalityOp(left, right, op);
+
+const performBooleanInequalityOp = (left: Value, right: Value, op: string): Value =>
     op === '>' ? left > right :
     op === '>=' ? left >= right :
     op === '<' ? left < right :
-    op === '<=' ? left <= right :
-    op === '==' ? left == right :
-    left === right;
+    left <= right;
 
 const performNumericBinaryOp = (left: number, right: number, op: string) : Value =>
     op === '-' ? left - right :
@@ -196,19 +199,21 @@ const performUpdate = (updateExpression: UpdateExpression, assignable: Assignabl
     }
     else {
         let arr = assignable.object;
-        let i = valueExpressionToValue(assignable.property, varTable);
-        if (isNumber(i) && isIdentifier(arr)) {
-            let oldValue = replaceVarInValueExpression(arr, getValueExpressionOfIdentifier(arr, varTable), varTable);
-            if (isArrayExpression(oldValue)) {
-                let newElements = oldValue.elements.map((v: ValueExpression, index: number): ValueExpression =>
-                    index == i ? createBinaryExpression(updateExpression.operator[0], v, createAtomicLiteralExpression(1), updateExpression.loc) : v);
-                let newArr = createArrayExpression(newElements, arr.loc);
-                updateVarTable(varTable, arr, newArr);
-                return (prefix) ? valueExpressionToValue(newElements[i], varTable) : valueExpressionToValue(oldValue.elements[i], varTable);
-            }
-        }
-        return "error: not a valid array";
+        let i = extractNumber(valueExpressionToValue(assignable.property, varTable));
+        return isIdentifier(arr) ? performUpdateOnArray(updateExpression, arr, i, prefix, varTable) : performBinaryOp(getElementOfArr(arr, i, varTable), 1, op[0]);
     }
+}
+
+const performUpdateOnArray = (updateExpression: UpdateExpression, arr: Identifier, i: number, prefix: boolean, varTable: VarTuple[]): Value => {
+    let oldValue = replaceVarInArrayExpression(arr, extractArrayExpression(arr, varTable), varTable);
+    if (oldValue.elements.length > 0) {
+        let newElements = oldValue.elements.map((v: ValueExpression, index: number): ValueExpression =>
+            index == i ? createBinaryExpression(updateExpression.operator[0], v, createAtomicLiteralExpression(1), updateExpression.loc) : v);
+        let newArr = createArrayExpression(newElements, arr.loc);
+        updateVarTable(varTable, arr, newArr);
+        return (prefix) ? valueExpressionToValue(newElements[i], varTable) : valueExpressionToValue(oldValue.elements[i], varTable);
+    }
+    return 0;
 }
 
 const updateVarTable = (varTable: VarTuple[], id: Identifier, newValue: ValueExpression): void => { // Mutations due to changing varTable
@@ -277,10 +282,12 @@ const replaceVarInMemberExpression = (id: Identifier, memberExpression: MemberEx
 
 const replaceVarInMemberObject = (id: Identifier, obj: ArrayObject, varTable: VarTuple[]): ArrayObject =>
     isArrayExpression(obj) ? (obj.elements.length > 0 ?
-        createArrayExpression(obj.elements.map((v: ValueExpression): ValueExpression =>
-            replaceVarInValueExpression(id, v, varTable)), obj.loc) :
+        replaceVarInArrayExpression(id, obj, varTable) :
     obj):
     replaceVarInMemberObject(id, extractArrayExpression(obj, varTable), varTable);
+
+const replaceVarInArrayExpression = (id: Identifier, arrayExpression: ArrayExpression, varTable: VarTuple[]): ArrayExpression =>
+    createArrayExpression(arrayExpression.elements.map((v: ValueExpression): ValueExpression => replaceVarInValueExpression(id, v, varTable)), arrayExpression.loc);
 
 const replaceVarInConditionalExpression = (id: Identifier, cond: ConditionalExpression, varTable: VarTuple[]): ValueExpression =>
     createConditionalExpression(replaceVarInValueExpression(id, cond.test, varTable),

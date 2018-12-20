@@ -1,5 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+'use strict';
+Object.defineProperty(exports, '__esModule', { value: true });
 var isWithType = function (x) { return x != null && x.hasOwnProperty('type'); };
 var getBlankPosition = function () {
     return ({ line: -1, column: -1 });
@@ -21,7 +21,7 @@ exports.isIdentifier = function (x) { return isWithType(x) ? x.type === 'Identif
 exports.isLiteral = function (x) { return exports.isAtomicLiteral(x) || exports.isArrayExpression(x); };
 exports.isAtomicLiteral = function (x) { return isWithType(x) ? x.type === 'Literal' : false; };
 exports.createAtomicLiteralExpression = function (x) {
-    return ({ type: "Literal", value: x, raw: String(x), loc: null });
+    return ({ type: 'Literal', value: x, raw: String(x), loc: null });
 };
 exports.isBinaryExpression = function (x) { return isWithType(x) ? x.type === 'BinaryExpression' : false; };
 exports.createBinaryExpression = function (operator, left, right, loc) {

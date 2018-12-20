@@ -1,6 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var Expression_Types_1 = require("./Expression-Types");
+'use strict';
+Object.defineProperty(exports, '__esModule', { value: true });
+var Expression_Types_1 = require('./Expression-Types');
 exports.isBinaryExpression = Expression_Types_1.isBinaryExpression;
 exports.isConditionalExpression = Expression_Types_1.isConditionalExpression;
 exports.isIdentifier = Expression_Types_1.isIdentifier;
@@ -9,7 +9,7 @@ exports.isMemberExpression = Expression_Types_1.isMemberExpression;
 exports.isUnaryExpression = Expression_Types_1.isUnaryExpression;
 exports.isUpdateExpression = Expression_Types_1.isUpdateExpression;
 exports.isProgram = Expression_Types_1.isProgram;
-var code_substitutor_1 = require("./code-substitutor");
+var code_substitutor_1 = require('./code-substitutor');
 var EMPTY = '';
 /*const expressionToAnalyzedLines = (exp: Expression): AnalyzedLine[] =>
     //isExpressionStatement(exp) ? expressionStatementToAnalyzedLines(exp) :
@@ -44,10 +44,13 @@ var getValOfInit = function (init, varTable) {
 };
 exports.getValOfValExp = function (v, varTable) {
     return Expression_Types_1.isLiteral(v) ? getValOfLiteral(v, varTable) :
-        Expression_Types_1.isIdentifier(v) ? (varTable.length == 0 || code_substitutor_1.isVarParam(v, varTable) ? v.name : exports.getValOfValExp(code_substitutor_1.getValueExpressionOfIdentifier(v, varTable), varTable)) :
+        Expression_Types_1.isIdentifier(v) ? getValOfIdentifier(v, varTable) :
             Expression_Types_1.isComputationExpression(v) ? getValOfComputationExpression(v, varTable) :
                 Expression_Types_1.isConditionalExpression(v) ? getValOfConditionalExpression(v, varTable) :
                     getValOfMemberExpression(v, varTable);
+};
+var getValOfIdentifier = function (id, varTable) {
+    return (varTable.length == 0 || code_substitutor_1.isVarParam(id, varTable) ? id.name : exports.getValOfValExp(code_substitutor_1.getValueExpressionOfIdentifier(id, varTable), varTable));
 };
 var getValOfLiteral = function (literal, varTable) {
     return Expression_Types_1.isAtomicLiteral(literal) ? literal.raw :
@@ -65,7 +68,7 @@ var getValOfComputationExpression = function (c, varTable) {
                 (c.prefix ? c.operator + exports.getValOfValExp(c.argument, varTable) : exports.getValOfValExp(c.argument, varTable) + c.operator);
 };
 var getValOfConditionalExpression = function (cond, varTable) {
-    return "(" + exports.getValOfValExp(cond.test, varTable) + " ? " + exports.getValOfValExp(cond.consequent, varTable) + " : " + exports.getValOfValExp(cond.alternate, varTable) + ")";
+    return '(' + exports.getValOfValExp(cond.test, varTable) + ' ? ' + exports.getValOfValExp(cond.consequent, varTable) + ' : ' + exports.getValOfValExp(cond.alternate, varTable) + ')';
 };
 var getValOfMemberExpression = function (m, varTable) {
     return m.computed ? exports.getValOfValExp(m.object, varTable) + '[' + exports.getValOfValExp(m.property, varTable) + ']' :
@@ -160,11 +163,14 @@ exports.getAllAnalyzedLines = function (exp, varTable) {
 };
 exports.getFirstAnalyzedLine = function (exp, varTable) {
     return Expression_Types_1.isAtomicExpression(exp) ? getAnalyzedLinesFromAtomicExpression(exp, varTable)[0] :
-        Expression_Types_1.isExpressionStatement(exp) ? exports.getFirstAnalyzedLine(exp.expression, varTable) :
-            Expression_Types_1.isValueExpression(exp) ? valueExpressionToAnalyzedLines(exp, varTable)[0] :
-                Expression_Types_1.isFunctionDeclaration(exp) ? functionDeclarationToAnalyzedLines(exp)[0] :
-                    Expression_Types_1.isLoopStatement(exp) ? getFirstAnalyzedLineFromLoop(exp, varTable) :
-                        ifStatementToAnalyzedLines(exp, varTable)[0];
+        getFirstAnalyzedLineFromCompoundExpression(exp, varTable);
+};
+var getFirstAnalyzedLineFromCompoundExpression = function (comp, varTable) {
+    return Expression_Types_1.isExpressionStatement(comp) ? exports.getFirstAnalyzedLine(comp.expression, varTable) :
+        Expression_Types_1.isValueExpression(comp) ? valueExpressionToAnalyzedLines(comp, varTable)[0] :
+            Expression_Types_1.isFunctionDeclaration(comp) ? functionDeclarationToAnalyzedLines(comp)[0] :
+                Expression_Types_1.isLoopStatement(comp) ? getFirstAnalyzedLineFromLoop(comp, varTable) :
+                    ifStatementToAnalyzedLines(comp, varTable)[0];
 };
 var getFirstAnalyzedLineFromLoop = function (loop, varTable) {
     return Expression_Types_1.isWhileStatement(loop) ? whileStatementToAnalyzedLines(loop, varTable)[0] :

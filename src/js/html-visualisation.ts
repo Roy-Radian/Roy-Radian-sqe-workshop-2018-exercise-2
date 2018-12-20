@@ -28,10 +28,10 @@ const analyzedLinesIntoTable = (entries: AnalyzedLine[]): string =>
 
 const specialLines = ['ReturnStatement', 'BreakStatement', 'DoWhileEnd', 'BlockClosing', 'Else'];
 const atomicTypes = ['VariableDeclaration', 'AssignmentExpression'].concat(specialLines);
-const loopTypes = ['WhileStatement', 'DoWhileStatement', 'ForStatement'];
+//const loopTypes = ['WhileStatement', 'DoWhileStatement', 'ForStatement'];
 const computationTypes = ['BinaryExpression', 'UnaryExpresion', 'UpdateExpression'];
 const valueTypes = ['Literal', 'Identifier', 'MemberExpression', 'ConditionalExpression'].concat(computationTypes);
-const compoundTypes = ['FunctionDeclaration', 'IfStatement'].concat(valueTypes).concat(loopTypes);
+//const compoundTypes = ['FunctionDeclaration', 'IfStatement'].concat(valueTypes).concat(loopTypes);
 
 const constructSubstitution = (program: any, params: string): string => {
     ident = 0;
@@ -51,34 +51,35 @@ const valuedLineToHtml = (line: ValuedLine, params: string[]): string =>
     generateIdenttation() + valuedCompoundToHtml(line, params)) + "<br/>";
 
 const valuedAtomicToHtml = (line: ValuedLine): string =>
-    line.analyzedLine.type == 'VariableDeclaration' ? generateIdenttation() + valuedDeclarationToHtml(line) :
-    line.analyzedLine.type == 'AssignmentExpression' ? generateIdenttation() +  valuedAssignmentToHtml(line) :
+    line.analyzedLine.type === 'VariableDeclaration' ? generateIdenttation() + valuedDeclarationToHtml(line) :
+    line.analyzedLine.type === 'VariableDeclaration' ? generateIdenttation() + valuedDeclarationToHtml(line) :
+    line.analyzedLine.type === 'AssignmentExpression' ? generateIdenttation() +  valuedAssignmentToHtml(line) :
     specialLineToHtml(line);
 
 const specialLineToHtml = (line: ValuedLine): string =>
-    line.analyzedLine.type == 'ReturnStatement' ? generateIdenttation() + valuedReturnStatementToHtml(line) :
-    line.analyzedLine.type == 'BreakStatement' ? generateIdenttation() + valuedBreakToHtml(line) :
-    line.analyzedLine.type == 'DoWhileEnd' ? doWhileEndToHtml(line) :
-    line.analyzedLine.type == 'Else' ? elseToHtml(line) :
-    blockClosingToHtml(line);
+    line.analyzedLine.type === 'ReturnStatement' ? generateIdenttation() + valuedReturnStatementToHtml(line) :
+    line.analyzedLine.type === 'BreakStatement' ? generateIdenttation() + valuedBreakToHtml() :
+    line.analyzedLine.type === 'DoWhileEnd' ? doWhileEndToHtml(line) :
+    line.analyzedLine.type === 'Else' ? elseToHtml() :
+    blockClosingToHtml();
 
 const valuedCompoundToHtml = (line: ValuedLine, params: string[]): string =>
-    line.analyzedLine.type == 'FunctionDeclaration' ? valuedFuncToHtml(line, params) :
-    line.analyzedLine.type == 'IfStatement' ? valuedIfToHtml(line) :
-    valueTypes.indexOf(line.analyzedLine.type) != -1 ? valuedValueToHtml(line) :
+    line.analyzedLine.type === 'FunctionDeclaration' ? valuedFuncToHtml(line, params) :
+    line.analyzedLine.type === 'IfStatement' ? valuedIfToHtml(line) :
+    valueTypes.indexOf(line.analyzedLine.type) !== -1 ? valuedValueToHtml(line) :
     valuedLoopToHtml(line);
 
 const valuedValueToHtml = (line: ValuedLine): string =>
-    line.analyzedLine.type == 'UpdateExpression' ? valuedUpdateToHtml(line) :
+    line.analyzedLine.type === 'UpdateExpression' ? valuedUpdateToHtml(line) :
     '';
 
 const valuedLoopToHtml = (line: ValuedLine): string =>
-    line.analyzedLine.type == 'WhileStatement' ? valuedWhileToHtml(line) :
-    line.analyzedLine.type == 'DoWhileStatement' ? valuedDoWhileToHtml(line) :
+    line.analyzedLine.type === 'WhileStatement' ? valuedWhileToHtml(line) :
+    line.analyzedLine.type === 'DoWhileStatement' ? valuedDoWhileToHtml(line) :
     valuedForLineToHtml(line);
 
 const valuedDeclarationToHtml = (line: ValuedLine): string =>
-    `let ${line.analyzedLine.name} ${(line.value != 'null' ? ' = ' + line.analyzedLine.value : '')};`;
+    `let ${line.analyzedLine.name} ${(line.value !== 'null' ? ' = ' + line.analyzedLine.value : '')};`;
 
 const valuedAssignmentToHtml = (line: ValuedLine): string =>
     `${line.analyzedLine.name} = ${line.analyzedLine.value};`;
@@ -86,7 +87,7 @@ const valuedAssignmentToHtml = (line: ValuedLine): string =>
 const valuedReturnStatementToHtml = (line: ValuedLine): string =>
     `return ${line.analyzedLine.value};`;
 
-const valuedBreakToHtml = (line: ValuedLine): string =>
+const valuedBreakToHtml = (): string =>
     `break;`;
 
 const doWhileEndToHtml = (line: ValuedLine): string => {
@@ -95,13 +96,13 @@ const doWhileEndToHtml = (line: ValuedLine): string => {
     return returnLine;
 }
 
-const elseToHtml = (line: ValuedLine): string => {
+const elseToHtml = (): string => {
     let returnLine = generateIdenttation() + `else {`;
     ident += tabLength;
     return returnLine;
 }
 
-const blockClosingToHtml = (line: ValuedLine): string => {
+const blockClosingToHtml = (): string => {
     ident -= tabLength;
     return generateIdenttation() + `}`;
 }
